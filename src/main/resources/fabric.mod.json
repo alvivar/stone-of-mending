@@ -11,7 +11,8 @@
   "license": "CC0-1.0",
   "environment": "*",
   "entrypoints": {
-    "main": ["io.github.alvivar.stoneofmending.StoneOfMendingMod"]
+    "main": ["io.github.alvivar.stoneofmending.StoneOfMendingMod"],
+    "client": ["io.github.alvivar.stoneofmending.StoneOfMendingClient"]
   },
   "depends": {
     "fabricloader": ">=0.18.5",
