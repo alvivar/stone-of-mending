@@ -2,91 +2,107 @@
 
 ## Tool
 
-A face-based building tool. Mark a rectangular selection on a block face, then scroll to move a frontier plane forward or backward one layer at a time.
+A face-based building tool. Mark two corners to define a 3D selection, then scroll to collect or place blocks one layer at a time.
 
 - Scroll down collects the current layer into the player's inventory.
 - Scroll up places a new layer from the offhand material.
+- The frontier slice extends infinitely beyond the original selection in both directions.
 
 ## Mechanics
 
-### Selection and collection
+### Selection
 
 - Hold the Stone of Mending in the main hand.
-- Left-click a block face to mark point A.
-- Right-click a block face to mark point B.
-- A and B define a rectangular selection on a single face-aligned plane, one block thick.
-- Scroll down collects every supported block in the current plane.
-- The frontier moves one block inward after collection.
+- Left-click a block face to mark point A. The clicked face locks the normal direction.
+- Right-click any block (same dimension) to mark point B.
+- A and B define opposite corners of a 3D box.
+- The face normal from A defines which axis layers are sliced along.
 
-### Placement and growth
+### Collection (scroll down)
+
+- The frontier starts at the outermost face of the box (the normal side).
+- Scroll down collects every supported block in the current frontier slice.
+- The frontier moves one layer inward after each scroll.
+- Continues beyond the original box indefinitely.
+
+### Placement (scroll up)
 
 - Keep the Stone of Mending in the main hand, placement material in the offhand.
-- Scroll up places one new layer on the outward side of the current plane.
-- One block item consumed per placed block.
-- The frontier moves one block outward after placement.
+- Scroll up places one new layer from the offhand material.
+- The frontier moves one layer outward after each scroll.
+- Continues beyond the original box indefinitely.
 
 ## Locked decisions
 
-- Selection is always a 2D face-aligned rectangle, one block thick.
-- First marked face locks the plane normal. Second mark must be on the same plane.
+- Selection is a 3D box defined by A and B.
+- The first marked face locks the normal. B has no face constraint.
 - Outward = direction of the first marked face normal. Inward = opposite.
-- Selection is a moving frontier, not a fixed area.
+- The active frontier is a 1-block-thick slice orthogonal to the normal.
+- Frontier offset 0 = the outermost slice on the normal side of the box.
+- Positive offset = inward (collection direction). Negative offset = outward beyond the face.
+- Scroll always moves the frontier. Collection/placement attempt acts on the slice.
 - Marking A always starts a new selection and resets the frontier.
-- Marking B on a different plane is rejected. A is kept, action bar feedback.
 - Clicking air does nothing.
 - Selection persists per-player until replaced or logout.
-- The frontier moves only if at least one block was successfully collected or placed.
 - A collectible block: non-air, no block entity, has a direct item form.
 - A placeable target: offhand holds a BlockItem, target space is replaceable.
 - Placement material comes from the offhand slot.
 - Collection uses direct block-to-item pickup, not loot tables.
 - Collection and placement are server-side. Rendering is client-side.
-- Server validates: held item, active selection, loaded target positions before any world edit.
-- Mouse wheel is intercepted only while holding the Stone with an active selection.
+- Server validates: held item, active selection, same dimension, loaded target positions.
+- Mouse wheel is intercepted only while holding the Stone with an active complete selection.
+
+## Geometry
+
+- `SelectionBox` computes bounds, face block, frontier block, and slice positions from A + B + normal.
+- Face block = outermost block coordinate on the normal axis side of the box.
+- Frontier block = `faceBlock - offset * normalAxisStep`.
+- Slice positions = all blocks in the 2D cross-section at the frontier block coordinate.
 
 ## Implementation
 
-### Phase 1: Item and selection state ✦
+### Phase 1: Item and selection state ✓
 
 - Register the Stone of Mending item.
-- Server-side per-player selection state: point A, point B, plane normal, frontier offset.
+- Server-side per-player selection state: point A, point B, plane normal, dimension, frontier offset.
 - Packet sync from server to client for rendering.
 
-### Phase 2: Marking behavior
+### Phase 2: Marking behavior ✓
 
-- Left-click marks A, right-click marks B.
-- B accepted only on the same plane as A.
-- Compute plane normal, in-plane axes, min/max bounds, frontier plane.
+- Left-click marks A (locks face normal and dimension), right-click marks B.
+- B accepted in the same dimension, no plane constraint.
 - Cancel normal block interaction when the Stone handles the click.
 
-### Phase 3: Selection rendering
+### Phase 3: Selection rendering ✓
 
 - Client-side outline in world space.
-- Single-point marker when only A exists.
-- Box outline for the full slab when A and B exist.
-- Renders the current frontier plane, not the original.
+- Single-block marker when only A exists.
+- Dim outline for the full 3D box when A and B exist.
+- Bright outline for the current frontier slice.
+- Frontier slice tracks the offset, including beyond the original box.
 
-### Phase 4: Scroll input
+### Phase 4: Scroll input ✓
 
-- Small client mixin to intercept mouse wheel.
-- When holding the Stone with active selection: cancel hotbar scroll, send direction packet to server.
+- Client mixin intercepts mouse wheel in MouseHandler.onScroll.
+- When holding the Stone with active complete selection in matching dimension: cancel hotbar scroll, send direction packet to server.
 
 ### Phase 5: Collection (scroll down)
 
-- Iterate every block in the current frontier plane.
+- Use SelectionBox.slicePositions() to iterate the frontier slice.
 - Skip air and unsupported blocks.
 - Resolve direct item form, insert into inventory, drop overflow.
 - Remove block from world.
-- Move frontier one block inward.
-- Action bar feedback for results.
+- Advance frontier one layer inward.
+- Sync selection to client. Action bar feedback.
 
 ### Phase 6: Placement (scroll up)
 
 - Read offhand stack, require a placeable block item.
-- For each position in the outward plane: place block, consume one item.
-- Stop when materials run out or space is blocked.
-- Move frontier one block outward.
-- Action bar feedback for results.
+- Use SelectionBox.slicePositions() for the next outward slice.
+- Place block, consume one item per placed block.
+- Stop placing when materials run out or all positions blocked.
+- Advance frontier one layer outward.
+- Sync selection to client. Action bar feedback.
 
 ## MVP constraints
 
@@ -95,8 +111,8 @@ A face-based building tool. Mark a rectangular selection on a block face, then s
 - No loot tables, silk touch, or fortune.
 - No complex placement (stairs, slabs, oriented blocks).
 - No undo, no saved selections.
-- Simple full blocks only.
+- No selection size cap (the Stone of Mending is powerful by design).
 
 ## Done condition
 
-A player can hold the Stone, mark a face-aligned rectangle, see the frontier rendered, scroll down to collect layers, and scroll up to place layers from the offhand.
+A player can hold the Stone, mark a 3D box, see the full selection outline and frontier slice, scroll down to collect layers inward, and scroll up to place layers outward from the offhand — extending beyond the original selection in both directions.
