@@ -15,5 +15,7 @@ public class StoneOfMendingClient implements ClientModInitializer {
 		ClientPlayConnectionEvents.DISCONNECT.register((listener, client) -> {
 			ClientSelectionState.clear();
 		});
+
+		SelectionRenderer.register();
 	}
 }
