@@ -40,8 +40,7 @@ public class StoneOfMendingMod implements ModInitializer {
 			if (dir == -1) {
 				ScrollActions.collect(player, sel);
 			} else if (dir == 1) {
-				// Phase 6: placement
-				player.sendOverlayMessage(Component.literal("Place (not yet implemented)"));
+				ScrollActions.place(player, sel);
 			}
 		});
 
