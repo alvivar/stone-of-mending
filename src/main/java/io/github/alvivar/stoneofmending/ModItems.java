@@ -18,7 +18,7 @@ public class ModItems {
 	public static final Item STONE_OF_MENDING = Registry.register(
 			BuiltInRegistries.ITEM,
 			STONE_OF_MENDING_KEY,
-			new Item(new Item.Properties().setId(STONE_OF_MENDING_KEY).stacksTo(1)));
+			new StoneOfMendingItem(new Item.Properties().setId(STONE_OF_MENDING_KEY).stacksTo(1)));
 
 	public static void register() {
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
