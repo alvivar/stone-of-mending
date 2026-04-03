@@ -41,9 +41,11 @@ A face-based building tool. Mark two corners to define a 3D selection, then scro
 - Frontier offset 0 = the outermost slice on the normal side of the box.
 - Positive offset = inward (collection direction). Negative offset = outward beyond the face.
 - Scroll always moves the frontier. Collection/placement attempt acts on the slice.
-- Collection acts at the current frontier, then advances inward.
-- Placement acts one step outward from the current frontier, then retreats outward.
-- This means collection and placement naturally undo each other.
+- Collection acts at the current frontier, then always advances inward.
+- Placement acts one step outward from the current frontier.
+- Placement only advances outward when the target slice is fully filled.
+- When the offhand empties during placement, the inventory is searched for more of the same material.
+- Collection and placement naturally undo each other.
 - Marking A always starts a new selection and resets the frontier.
 - Clicking air does nothing.
 - Selection persists per-player until replaced or logout.
@@ -147,6 +149,20 @@ src/client/java/io/github/alvivar/stoneofmending/
   mixin/MouseHandlerMixin.java    — scroll interception
 ```
 
+### Phase 7: Polish and controls
+
+**7a. Success-gated frontier**: The frontier only advances outward when the target slice is fully filled. If the player runs out of material mid-slice, the frontier stays — next scroll-up retries the same slice. A slice is "complete" when no position in it is replaceable (second pass check after placement). If a slice is already fully occupied before any placement, it counts as complete and the frontier advances (prevents getting stuck on solid ground). Unloaded positions count as incomplete (conservative).
+
+Feedback cases:
+  - Placed N, complete → advance, "Placed N blocks"
+  - Placed N, incomplete → stay, "Placed N blocks (incomplete)"
+  - Placed 0, complete → advance, "Slice already full"
+  - Placed 0, incomplete → stay, "Nothing to place"
+
+**7b. Offhand auto-refill**: When the offhand stack empties during placement, scan the player's inventory (slots 0–35) for a matching stack (`ItemStack.isSameItemSameComponents`). If found, move it to the offhand slot, clear source slot, refresh the local reference, and continue placing. If not found, stop.
+
+**7c. Left-click air clears selection**: Client mixin on `Minecraft.startAttack()` detects left-click miss (hitResult == MISS) while holding Stone with an active selection. Sends `ClearSelectionC2SPayload` to server. Server validates held item, clears selection, syncs to client. No message if no selection exists (silent no-op).
+
 ## MVP constraints
 
 - One active selection per player.
@@ -160,4 +176,4 @@ src/client/java/io/github/alvivar/stoneofmending/
 
 ## Done condition
 
-A player can hold the Stone, mark a 3D box, see the full selection outline and frontier slice, scroll down to collect layers inward, and scroll up to place layers outward from the offhand — extending beyond the original selection in both directions.
+A player can hold the Stone, mark a 3D box, see the full selection outline and frontier slice, scroll down to collect layers inward, and scroll up to place layers outward from the offhand — extending beyond the original selection in both directions. Placement requires completing each slice before advancing, and auto-refills from inventory.
