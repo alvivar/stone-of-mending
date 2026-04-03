@@ -3,6 +3,8 @@ package io.github.alvivar.stoneofmending;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +15,10 @@ public class SelectionManager {
 
 	public static Selection getOrCreate(ServerPlayer player) {
 		return SELECTIONS.computeIfAbsent(player.getUUID(), k -> new Selection());
+	}
+
+	public static @Nullable Selection get(ServerPlayer player) {
+		return SELECTIONS.get(player.getUUID());
 	}
 
 	public static void remove(ServerPlayer player) {

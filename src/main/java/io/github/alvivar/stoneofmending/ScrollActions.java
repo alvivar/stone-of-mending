@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -59,13 +60,17 @@ public class ScrollActions {
 
 		SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
 		BlockState placeState = blockItem.getBlock().defaultBlockState();
+		ItemStack template = offhand.copy(); // for matching during refill
 
 		// Place one step outward from the current frontier
 		int targetOffset = sel.frontierOffset() - 1;
 
 		int placed = 0;
 		for (BlockPos pos : box.slicePositions(targetOffset)) {
-			if (offhand.isEmpty()) break;
+			if (offhand.isEmpty()) {
+				offhand = refillOffhand(player, template);
+				if (offhand.isEmpty()) break;
+			}
 			if (!level.isLoaded(pos)) continue;
 
 			BlockState existing = level.getBlockState(pos);
@@ -77,13 +82,39 @@ public class ScrollActions {
 			}
 		}
 
-		sel.advanceFrontier(-1);
+		// Second pass: is the slice complete?
+		boolean complete = true;
+		for (BlockPos pos : box.slicePositions(targetOffset)) {
+			if (!level.isLoaded(pos)) { complete = false; break; }
+			if (level.getBlockState(pos).canBeReplaced()) { complete = false; break; }
+		}
+
+		if (complete) {
+			sel.advanceFrontier(-1);
+		}
 		SelectionManager.sync(player);
 
-		if (placed > 0) {
+		if (placed > 0 && complete) {
 			player.sendOverlayMessage(Component.literal("Placed " + placed + " blocks"));
+		} else if (placed > 0) {
+			player.sendOverlayMessage(Component.literal("Placed " + placed + " blocks (incomplete)"));
+		} else if (complete) {
+			player.sendOverlayMessage(Component.literal("Slice already full"));
 		} else {
 			player.sendOverlayMessage(Component.literal("Nothing to place"));
 		}
+	}
+
+	private static ItemStack refillOffhand(ServerPlayer player, ItemStack template) {
+		Inventory inventory = player.getInventory();
+		for (int i = 0; i < 36; i++) { // hotbar + main inventory only
+			ItemStack slot = inventory.getItem(i);
+			if (ItemStack.isSameItemSameComponents(slot, template)) {
+				inventory.setItem(Inventory.SLOT_OFFHAND, slot);
+				inventory.setItem(i, ItemStack.EMPTY);
+				return player.getOffhandItem();
+			}
+		}
+		return ItemStack.EMPTY;
 	}
 }

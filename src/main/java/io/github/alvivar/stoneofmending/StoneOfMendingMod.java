@@ -28,6 +28,10 @@ public class StoneOfMendingMod implements ModInitializer {
 				ScrollActionC2SPayload.TYPE, ScrollActionC2SPayload.STREAM_CODEC
 		);
 
+		PayloadTypeRegistry.serverboundPlay().register(
+				ClearSelectionC2SPayload.TYPE, ClearSelectionC2SPayload.STREAM_CODEC
+		);
+
 		ServerPlayNetworking.registerGlobalReceiver(ScrollActionC2SPayload.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
 			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
@@ -42,6 +46,17 @@ public class StoneOfMendingMod implements ModInitializer {
 			} else if (dir == 1) {
 				ScrollActions.place(player, sel);
 			}
+		});
+
+		ServerPlayNetworking.registerGlobalReceiver(ClearSelectionC2SPayload.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
+
+			Selection sel = SelectionManager.get(player);
+			if (sel == null || !sel.hasA()) return;
+
+			sel.clear();
+			SelectionManager.sync(player);
 		});
 
 		// Left-click marks point A

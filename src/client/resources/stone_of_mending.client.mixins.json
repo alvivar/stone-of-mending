@@ -3,7 +3,8 @@
   "package": "io.github.alvivar.stoneofmending.mixin",
   "compatibilityLevel": "JAVA_22",
   "client": [
-    "MouseHandlerMixin"
+    "MouseHandlerMixin",
+    "StartAttackMixin"
   ],
   "injectors": {
     "defaultRequire": 1

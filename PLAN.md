@@ -141,23 +141,26 @@ src/main/java/io/github/alvivar/stoneofmending/
   ScrollActionC2SPayload.java     — C2S packet (scroll direction ±1)
   SelectionBox.java               — shared geometry (bounds, face, frontier, slice positions)
   ScrollActions.java              — collect + place logic
+  ClearSelectionC2SPayload.java   — C2S packet (clear selection)
 
 src/client/java/io/github/alvivar/stoneofmending/
   StoneOfMendingClient.java       — client init, packet receiver, disconnect cleanup
   ClientSelectionState.java       — client-side selection mirror
   SelectionRenderer.java          — world-space outline rendering
   mixin/MouseHandlerMixin.java    — scroll interception
+  mixin/StartAttackMixin.java     — left-click air clears selection
 ```
 
-### Phase 7: Polish and controls
+### Phase 7: Polish and controls ✓
 
 **7a. Success-gated frontier**: The frontier only advances outward when the target slice is fully filled. If the player runs out of material mid-slice, the frontier stays — next scroll-up retries the same slice. A slice is "complete" when no position in it is replaceable (second pass check after placement). If a slice is already fully occupied before any placement, it counts as complete and the frontier advances (prevents getting stuck on solid ground). Unloaded positions count as incomplete (conservative).
 
 Feedback cases:
-  - Placed N, complete → advance, "Placed N blocks"
-  - Placed N, incomplete → stay, "Placed N blocks (incomplete)"
-  - Placed 0, complete → advance, "Slice already full"
-  - Placed 0, incomplete → stay, "Nothing to place"
+
+- Placed N, complete → advance, "Placed N blocks"
+- Placed N, incomplete → stay, "Placed N blocks (incomplete)"
+- Placed 0, complete → advance, "Slice already full"
+- Placed 0, incomplete → stay, "Nothing to place"
 
 **7b. Offhand auto-refill**: When the offhand stack empties during placement, scan the player's inventory (slots 0–35) for a matching stack (`ItemStack.isSameItemSameComponents`). If found, move it to the offhand slot, clear source slot, refresh the local reference, and continue placing. If not found, stop.
 
