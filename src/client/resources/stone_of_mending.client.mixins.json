@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "io.github.alvivar.stoneofmending.mixin",
+  "compatibilityLevel": "JAVA_22",
+  "client": [
+    "MouseHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

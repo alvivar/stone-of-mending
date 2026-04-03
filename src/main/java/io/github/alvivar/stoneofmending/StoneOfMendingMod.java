@@ -4,6 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
@@ -22,6 +23,27 @@ public class StoneOfMendingMod implements ModInitializer {
 		PayloadTypeRegistry.clientboundPlay().register(
 				SelectionSyncPayload.TYPE, SelectionSyncPayload.STREAM_CODEC
 		);
+
+		PayloadTypeRegistry.serverboundPlay().register(
+				ScrollActionC2SPayload.TYPE, ScrollActionC2SPayload.STREAM_CODEC
+		);
+
+		ServerPlayNetworking.registerGlobalReceiver(ScrollActionC2SPayload.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
+
+			Selection sel = SelectionManager.getOrCreate(player);
+			if (!sel.isComplete()) return;
+			if (!player.level().dimension().equals(sel.dimension())) return;
+
+			// Validate direction is ±1
+			int dir = payload.direction();
+			if (dir != 1 && dir != -1) return;
+
+			// Phase 5/6 will implement actual collection/placement here
+			String action = dir > 0 ? "Place" : "Collect";
+			player.sendOverlayMessage(Component.literal(action + " (not yet implemented)"));
+		});
 
 		// Left-click marks point A
 		AttackBlockCallback.EVENT.register((player, level, hand, pos, direction) -> {
