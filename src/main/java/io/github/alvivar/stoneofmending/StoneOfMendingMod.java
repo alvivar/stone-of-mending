@@ -36,13 +36,13 @@ public class StoneOfMendingMod implements ModInitializer {
 			if (!sel.isComplete()) return;
 			if (!player.level().dimension().equals(sel.dimension())) return;
 
-			// Validate direction is ±1
 			int dir = payload.direction();
-			if (dir != 1 && dir != -1) return;
-
-			// Phase 5/6 will implement actual collection/placement here
-			String action = dir > 0 ? "Place" : "Collect";
-			player.sendOverlayMessage(Component.literal(action + " (not yet implemented)"));
+			if (dir == -1) {
+				ScrollActions.collect(player, sel);
+			} else if (dir == 1) {
+				// Phase 6: placement
+				player.sendOverlayMessage(Component.literal("Place (not yet implemented)"));
+			}
 		});
 
 		// Left-click marks point A
