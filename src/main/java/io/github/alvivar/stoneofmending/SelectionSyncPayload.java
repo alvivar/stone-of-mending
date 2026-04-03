@@ -25,7 +25,7 @@ public record SelectionSyncPayload(
 			.of(SelectionSyncPayload::write, SelectionSyncPayload::read);
 
 	private static void write(FriendlyByteBuf buf, SelectionSyncPayload payload) {
-		boolean hasSelection = payload.pointA != null && payload.normal != null;
+		boolean hasSelection = payload.pointA != null && payload.normal != null && payload.dimension != null;
 		buf.writeBoolean(hasSelection);
 		if (!hasSelection)
 			return;
