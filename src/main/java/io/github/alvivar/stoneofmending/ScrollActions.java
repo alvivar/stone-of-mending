@@ -68,7 +68,8 @@ public class ScrollActions {
 
 		SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
 
-		Integer targetOffset = findNextPlacement(level, box);
+		// Scan outward from frontier for the first incomplete slice
+		Integer targetOffset = findNextPlacement(level, box, sel.frontierOffset());
 		if (targetOffset == null) {
 			player.sendOverlayMessage(Component.literal("Nothing to place"));
 			return;
@@ -96,6 +97,8 @@ public class ScrollActions {
 		}
 
 		if (placed > 0) {
+			sel.setFrontier(targetOffset);
+			SelectionManager.sync(player);
 			player.sendOverlayMessage(Component.literal("Placed " + placed + " blocks"));
 		} else {
 			player.sendOverlayMessage(Component.literal("Nothing to place"));
@@ -163,27 +166,16 @@ public class ScrollActions {
 	private enum SliceStatus { COMPLETE, INCOMPLETE, BLOCKED }
 
 	/**
-	 * Finds the next slice that needs filling: inside box far→face, then outward.
-	 * Returns null if nothing to place or scan is blocked.
+	 * Scans outward from the frontier for the first incomplete slice.
+	 * Starts at frontierOffset-1 and goes outward (decreasing offset).
+	 * Skips already-complete slices. Returns null if blocked or nothing found.
 	 */
-	private static Integer findNextPlacement(ServerLevel level, SelectionBox box) {
-		int depth = box.depth();
-
-		// Inside box: far side → face
-		for (int offset = depth - 1; offset >= 0; offset--) {
+	private static Integer findNextPlacement(ServerLevel level, SelectionBox box, int frontierOffset) {
+		for (int offset = frontierOffset - 1; ; offset--) {
 			switch (checkSlice(level, box, offset)) {
 				case INCOMPLETE -> { return offset; }
 				case BLOCKED -> { return null; }
-				case COMPLETE -> {} // continue
-			}
-		}
-
-		// Outward beyond face
-		for (int offset = -1; ; offset--) {
-			switch (checkSlice(level, box, offset)) {
-				case INCOMPLETE -> { return offset; }
-				case BLOCKED -> { return null; }
-				case COMPLETE -> {} // continue
+				case COMPLETE -> {} // continue past full slices
 			}
 		}
 	}

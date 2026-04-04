@@ -58,6 +58,10 @@ public class Selection {
 		this.frontierOffset += delta;
 	}
 
+	public void setFrontier(int offset) {
+		this.frontierOffset = offset;
+	}
+
 	public void clear() {
 		this.pointA = null;
 		this.pointB = null;
