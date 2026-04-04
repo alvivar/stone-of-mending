@@ -178,6 +178,7 @@ Feedback cases:
 **8c. Material replacement (middle click)**: Middle click while holding Stone with complete selection swaps every eligible block in the entire selected box to the offhand material. Order: far-side slice to face slice (consistent with placement). Source rules: same as collection (non-air, no block entity). Target rules: offhand must be BlockItem. Skips blocks already matching the target. Auto-refill from inventory (same as placement — scans slots 0–35 for matching stacks when offhand empties). Partial replace stops when materials run out. Does not interact with the frontier. Each block is transactional: compute old drops → replace with new block → only if replacement succeeds, consume material + grant drops → if fails, restore old block.
 
 Input model:
+
 - Left-click block → mark A
 - Right-click block → mark B
 - Left-click air → clear selection
