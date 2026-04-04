@@ -11,6 +11,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class ScrollActions {
@@ -32,12 +33,15 @@ public class ScrollActions {
 		int collected = 0;
 		for (BlockPos pos : box.slicePositions(sel.frontierOffset())) {
 			BlockState state = level.getBlockState(pos);
-			if (state.isAir()) continue;
-			if (state.hasBlockEntity()) continue;
+			if (state.isAir())
+				continue;
+			if (state.hasBlockEntity())
+				continue;
 
 			List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, VIRTUAL_PICKAXE);
 
-			if (!level.removeBlock(pos, false)) continue;
+			if (!level.removeBlock(pos, false))
+				continue;
 
 			for (ItemStack drop : drops) {
 				if (!player.getInventory().add(drop)) {
@@ -82,13 +86,17 @@ public class ScrollActions {
 		for (BlockPos pos : box.slicePositions(targetOffset)) {
 			if (offhand.isEmpty()) {
 				offhand = refillOffhand(player, template);
-				if (offhand.isEmpty()) break;
+				if (offhand.isEmpty())
+					break;
 			}
-			if (!level.isLoaded(pos)) continue;
-			if (level.isOutsideBuildHeight(pos)) continue;
+			if (!level.isLoaded(pos))
+				continue;
+			if (level.isOutsideBuildHeight(pos))
+				continue;
 
 			BlockState existing = level.getBlockState(pos);
-			if (!existing.canBeReplaced()) continue;
+			if (!existing.canBeReplaced())
+				continue;
 
 			if (level.setBlock(pos, placeState, Block.UPDATE_NEIGHBORS | Block.UPDATE_CLIENTS)) {
 				offhand.shrink(1);
@@ -125,15 +133,21 @@ public class ScrollActions {
 			for (BlockPos pos : box.slicePositions(offset)) {
 				if (offhand.isEmpty()) {
 					offhand = refillOffhand(player, template);
-					if (offhand.isEmpty()) break;
+					if (offhand.isEmpty())
+						break;
 				}
-				if (!level.isLoaded(pos)) continue;
+				if (!level.isLoaded(pos))
+					continue;
 
 				BlockState state = level.getBlockState(pos);
-				if (state.isAir()) continue;
-				if (state.liquid()) continue;
-				if (state.hasBlockEntity()) continue;
-				if (state.is(targetBlock)) continue;
+				if (state.isAir())
+					continue;
+				if (state.getBlock() instanceof LiquidBlock)
+					continue;
+				if (state.hasBlockEntity())
+					continue;
+				if (state.is(targetBlock))
+					continue;
 
 				List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, VIRTUAL_PICKAXE);
 
@@ -151,7 +165,8 @@ public class ScrollActions {
 			// Check refill between slices too
 			if (offhand.isEmpty()) {
 				offhand = refillOffhand(player, template);
-				if (offhand.isEmpty()) break;
+				if (offhand.isEmpty())
+					break;
 			}
 		}
 
@@ -164,7 +179,9 @@ public class ScrollActions {
 
 	// --- Placement scan ---
 
-	private enum SliceStatus { COMPLETE, INCOMPLETE, BLOCKED }
+	private enum SliceStatus {
+		COMPLETE, INCOMPLETE, BLOCKED
+	}
 
 	/**
 	 * Scans outward from the frontier for the first incomplete slice.
@@ -172,11 +189,16 @@ public class ScrollActions {
 	 * Skips already-complete slices. Returns null if blocked or nothing found.
 	 */
 	private static Integer findNextPlacement(ServerLevel level, SelectionBox box, int frontierOffset) {
-		for (int offset = frontierOffset - 1; ; offset--) {
+		for (int offset = frontierOffset - 1;; offset--) {
 			switch (checkSlice(level, box, offset)) {
-				case INCOMPLETE -> { return offset; }
-				case BLOCKED -> { return null; }
-				case COMPLETE -> {} // continue past full slices
+				case INCOMPLETE -> {
+					return offset;
+				}
+				case BLOCKED -> {
+					return null;
+				}
+				case COMPLETE -> {
+				} // continue past full slices
 			}
 		}
 	}
@@ -186,14 +208,18 @@ public class ScrollActions {
 		boolean anyInBounds = false;
 
 		for (BlockPos pos : box.slicePositions(offset)) {
-			if (level.isOutsideBuildHeight(pos)) continue;
+			if (level.isOutsideBuildHeight(pos))
+				continue;
 			anyInBounds = true;
-			if (!level.isLoaded(pos)) return SliceStatus.BLOCKED;
-			if (level.getBlockState(pos).canBeReplaced()) anyReplaceable = true;
+			if (!level.isLoaded(pos))
+				return SliceStatus.BLOCKED;
+			if (level.getBlockState(pos).canBeReplaced())
+				anyReplaceable = true;
 		}
 
 		// Entire slice out of world bounds — can't go further
-		if (!anyInBounds) return SliceStatus.BLOCKED;
+		if (!anyInBounds)
+			return SliceStatus.BLOCKED;
 		return anyReplaceable ? SliceStatus.INCOMPLETE : SliceStatus.COMPLETE;
 	}
 
