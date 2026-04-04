@@ -42,18 +42,21 @@ A face-based building tool. Mark two corners to define a 3D selection, then scro
 - Positive offset = inward (collection direction). Negative offset = outward beyond the face.
 - Scroll always moves the frontier. Collection/placement attempt acts on the slice.
 - Collection acts at the current frontier, then always advances inward.
-- Placement acts one step outward from the current frontier.
-- Placement only advances outward when the target slice is fully filled.
-- When the offhand empties during placement, the inventory is searched for more of the same material.
-- Collection and placement naturally undo each other.
+- Placement dynamically scans for the first incomplete slice: inside box far-to-face, then outward.
+- Placement does not use or modify the frontier offset.
+- When the offhand empties during placement or replacement, the inventory is searched for more of the same material.
+- Material replacement (middle click) operates on the entire box, does not touch the frontier.
 - Marking A always starts a new selection and resets the frontier.
 - Clicking air does nothing.
 - Selection persists per-player until replaced or logout.
-- A collectible block: non-air, no block entity, has a direct item form.
+- A collectible block: non-air, no block entity (loaded chunk).
+- Collection and replacement use mining-style drops via `Block.getDrops()` with a virtual netherite pickaxe.
+- No enchantments on the virtual tool (no silk touch, no fortune).
+- Empty drops are valid — block is removed, yields nothing.
 - A placeable target: offhand holds a BlockItem, target space is replaceable.
 - Placement uses defaultBlockState() (no orientation or context).
 - Placement material comes from the offhand slot.
-- Collection uses direct block-to-item pickup, not loot tables.
+- Offhand auto-refill from inventory applies to placement and replacement.
 - Collection and placement are server-side. Rendering is client-side.
 - Server validates: held item, active selection, same dimension, loaded target positions.
 - Mouse wheel is intercepted only while holding the Stone with an active complete selection.
@@ -166,11 +169,27 @@ Feedback cases:
 
 **7c. Left-click air clears selection**: Client mixin on `Minecraft.startAttack()` detects left-click miss (hitResult == MISS) while holding Stone with an active selection. Sends `ClearSelectionC2SPayload` to server. Server validates held item, clears selection, syncs to client. No message if no selection exists (silent no-op).
 
+### Phase 8: Dynamic placement + material replacement
+
+**8a. Dynamic placement scan**: Placement no longer uses `frontierOffset`. Each scroll-up scans for the first incomplete slice in order: inside the box from far side to face (`depth-1` → `0`), then outward beyond the face (`-1, -2, ...`). `frontierOffset` becomes collection-only. Helpers: `isSliceComplete(level, box, offset)` and `findNextPlacementOffset(level, box)` in `ScrollActions`; `depth()` in `SelectionBox`.
+
+**8b. Mining-style drops**: Collection and replacement use `Block.getDrops(state, level, pos, null, player, tool)` (6-arg) with a cached virtual netherite pickaxe (no enchantments) as the tool context. Blocks yield what they'd drop if mined (Stone → Cobblestone, Ores → drops, Glass → nothing). Empty drops are valid — block is still removed, just yields nothing. Simplifies eligibility: skip air and block entities only (no more `asItem() == AIR` check). No XP drops. The virtual pickaxe is cached as a `private static final` field, reused across all drop calls.
+
+**8c. Material replacement (middle click)**: Middle click while holding Stone with complete selection swaps every eligible block in the entire selected box to the offhand material. Order: far-side slice to face slice (consistent with placement). Source rules: same as collection (non-air, no block entity). Target rules: offhand must be BlockItem. Skips blocks already matching the target. Auto-refill from inventory (same as placement — scans slots 0–35 for matching stacks when offhand empties). Partial replace stops when materials run out. Does not interact with the frontier. Each block is transactional: compute old drops → replace with new block → only if replacement succeeds, consume material + grant drops → if fails, restore old block.
+
+Input model:
+- Left-click block → mark A
+- Right-click block → mark B
+- Left-click air → clear selection
+- Scroll down → collect layer (frontier cursor, inward)
+- Scroll up → fill next incomplete layer (world scan, far-to-face then outward)
+- Middle click → replace material in entire box
+
 ## MVP constraints
 
 - One active selection per player.
 - No block entities, no NBT preservation.
-- No loot tables, silk touch, or fortune.
+- Loot-table drops but no tool context (no silk touch, no fortune).
 - No complex placement (stairs, slabs, oriented blocks).
 - No undo, no saved selections.
 - No selection size cap (the Stone of Mending is powerful by design).
@@ -179,4 +198,4 @@ Feedback cases:
 
 ## Done condition
 
-A player can hold the Stone, mark a 3D box, see the full selection outline and frontier slice, scroll down to collect layers inward, and scroll up to place layers outward from the offhand — extending beyond the original selection in both directions. Placement requires completing each slice before advancing, and auto-refills from inventory.
+A player can hold the Stone, mark a 3D box, see the full selection outline and frontier slice, scroll down to collect layers inward (mining-style drops), scroll up to fill the next incomplete layer from offhand, and middle-click to replace all blocks in the box with offhand material. Placement and replacement auto-refill from inventory. The tool extends beyond the original selection in both directions.
