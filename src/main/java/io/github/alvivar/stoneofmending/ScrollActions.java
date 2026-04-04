@@ -131,6 +131,7 @@ public class ScrollActions {
 
 				BlockState state = level.getBlockState(pos);
 				if (state.isAir()) continue;
+				if (state.liquid()) continue;
 				if (state.hasBlockEntity()) continue;
 				if (state.is(targetBlock)) continue;
 
