@@ -32,6 +32,10 @@ public class StoneOfMendingMod implements ModInitializer {
 				ClearSelectionC2SPayload.TYPE, ClearSelectionC2SPayload.STREAM_CODEC
 		);
 
+		PayloadTypeRegistry.serverboundPlay().register(
+				MiddleClickC2SPayload.TYPE, MiddleClickC2SPayload.STREAM_CODEC
+		);
+
 		ServerPlayNetworking.registerGlobalReceiver(ScrollActionC2SPayload.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
 			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
@@ -46,6 +50,17 @@ public class StoneOfMendingMod implements ModInitializer {
 			} else if (dir == 1) {
 				ScrollActions.place(player, sel);
 			}
+		});
+
+		ServerPlayNetworking.registerGlobalReceiver(MiddleClickC2SPayload.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
+
+			Selection sel = SelectionManager.getOrCreate(player);
+			if (!sel.isComplete()) return;
+			if (!player.level().dimension().equals(sel.dimension())) return;
+
+			ScrollActions.replace(player, sel);
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(ClearSelectionC2SPayload.TYPE, (payload, context) -> {

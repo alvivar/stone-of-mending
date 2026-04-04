@@ -41,6 +41,15 @@ public record SelectionBox(
 		return faceBlock() - offset * step;
 	}
 
+	/** Number of slices along the normal axis within the selected box. */
+	public int depth() {
+		return switch (normal.getAxis()) {
+			case X -> maxX - minX + 1;
+			case Y -> maxY - minY + 1;
+			case Z -> maxZ - minZ + 1;
+		};
+	}
+
 	/** Iterate all block positions in a frontier slice at the given offset. */
 	public Iterable<BlockPos> slicePositions(int offset) {
 		int fb = frontierBlock(offset);
