@@ -50,8 +50,8 @@ public class SelectionManager {
 
 		if (toClear != null) {
 			for (ServerPlayer player : toClear) {
-				SELECTIONS.get(player.getUUID()).clear();
-				sync(player);
+				SELECTIONS.remove(player.getUUID());
+				ServerPlayNetworking.send(player, SelectionSyncPayload.from(new Selection()));
 			}
 		}
 	}

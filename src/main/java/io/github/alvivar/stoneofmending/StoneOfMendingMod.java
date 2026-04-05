@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 public class StoneOfMendingMod implements ModInitializer {
 
 	public static final String MOD_ID = "stone_of_mending";
-	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	@Override
 	public void onInitialize() {
@@ -41,8 +41,8 @@ public class StoneOfMendingMod implements ModInitializer {
 			ServerPlayer player = context.player();
 			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
 
-			Selection sel = SelectionManager.getOrCreate(player);
-			if (!sel.isComplete()) return;
+			Selection sel = SelectionManager.get(player);
+			if (sel == null || !sel.isComplete()) return;
 			if (!player.level().dimension().equals(sel.dimension())) return;
 
 			int dir = payload.direction();
@@ -60,8 +60,8 @@ public class StoneOfMendingMod implements ModInitializer {
 			ServerPlayer player = context.player();
 			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
 
-			Selection sel = SelectionManager.getOrCreate(player);
-			if (!sel.isComplete()) return;
+			Selection sel = SelectionManager.get(player);
+			if (sel == null || !sel.isComplete()) return;
 			if (!player.level().dimension().equals(sel.dimension())) return;
 
 			ScrollActions.replace(player, sel);
@@ -74,8 +74,8 @@ public class StoneOfMendingMod implements ModInitializer {
 			Selection sel = SelectionManager.get(player);
 			if (sel == null || !sel.hasA()) return;
 
-			sel.clear();
-			SelectionManager.sync(player);
+			SelectionManager.remove(player);
+			ServerPlayNetworking.send(player, SelectionSyncPayload.from(new Selection()));
 		});
 
 		// Left-click marks point A
