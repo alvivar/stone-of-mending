@@ -196,7 +196,9 @@ Input model:
 
 **Active range**: `min(frontierOffset, 0)` to `max(frontierOffset - 1, depth - 1)`. Expands beyond the original box when the frontier has extended outward (negative) or inward past the far side (positive). When frontier is at 0 (untouched), range equals the original box.
 
-**Cursor tracking**: Shift+scroll moves the frontier to reflect where the action happened (target for fill, target+1 for collect). If the frontier is currently inside the box [0, depth-1], it is clamped so it cannot exit the box via shift+scroll. If outside the box, it moves freely toward the box. This keeps the visual indicator honest about where the tool is working while preventing shift+scroll from pushing the cursor out of the selection.
+**Cursor tracking**: Shift+scroll moves the frontier to reflect where the action happened (target for fill, target+1 for collect). If the frontier is currently inside the box [0, depth-1], it is clamped so it cannot exit the box via shift+scroll. If outside the box, it only moves in the direction that retracts toward the box (shift+down when in front, shift+up when past far side). This keeps the visual indicator honest about where the tool is working while preventing shift+scroll from pushing the cursor further out.
+
+**Linear scroll (Phase 10b)**: Normal scroll-up always targets exactly `frontier - 1`. No gap-skipping — the cursor moves one slice outward whether or not anything was placed. Aborts only if the target slice is blocked (unloaded/out-of-bounds). Mirrors scroll-down which always advances +1. Shift+scroll provides the "smart jump" for skipping to interesting slices. `findNextPlacement` was removed.
 
 **Wire format**: `ScrollActionC2SPayload` gains a `shifted` boolean. Client mixin detects shift via `InputConstants.isKeyDown(window, KEY_LSHIFT/KEY_RSHIFT)`. Server dispatches to `interiorFill`/`interiorCollect` when shifted.
 

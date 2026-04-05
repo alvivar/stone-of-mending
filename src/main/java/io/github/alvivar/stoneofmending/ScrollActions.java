@@ -71,13 +71,15 @@ public class ScrollActions {
 		}
 
 		SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
+		int targetOffset = sel.frontierOffset() - 1;
 
-		// Scan outward from frontier for the first incomplete slice
-		Integer targetOffset = findNextPlacement(level, box, sel.frontierOffset());
-		if (targetOffset == null) {
-			player.sendOverlayMessage(Component.literal("Nothing to place"));
+		if (checkSlice(level, box, targetOffset) == SliceStatus.BLOCKED) {
+			player.sendOverlayMessage(Component.literal("Slice is blocked"));
 			return;
 		}
+
+		sel.setFrontier(targetOffset);
+		SelectionManager.sync(player);
 
 		BlockState placeState = blockItem.getBlock().defaultBlockState();
 		ItemStack template = offhand.copy();
@@ -105,8 +107,6 @@ public class ScrollActions {
 		}
 
 		if (placed > 0) {
-			sel.setFrontier(targetOffset);
-			SelectionManager.sync(player);
 			player.sendOverlayMessage(Component.literal("Placed " + placed + " blocks"));
 		} else {
 			player.sendOverlayMessage(Component.literal("Nothing to place"));
@@ -283,26 +283,6 @@ public class ScrollActions {
 
 	private enum SliceStatus {
 		COMPLETE, INCOMPLETE, BLOCKED
-	}
-
-	/**
-	 * Scans outward from the frontier for the first incomplete slice.
-	 * Starts at frontierOffset-1 and goes outward (decreasing offset).
-	 * Skips already-complete slices. Returns null if blocked or nothing found.
-	 */
-	private static Integer findNextPlacement(ServerLevel level, SelectionBox box, int frontierOffset) {
-		for (int offset = frontierOffset - 1;; offset--) {
-			switch (checkSlice(level, box, offset)) {
-				case INCOMPLETE -> {
-					return offset;
-				}
-				case BLOCKED -> {
-					return null;
-				}
-				case COMPLETE -> {
-				} // continue past full slices
-			}
-		}
 	}
 
 	private static SliceStatus checkSlice(ServerLevel level, SelectionBox box, int offset) {
