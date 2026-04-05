@@ -196,6 +196,8 @@ Input model:
 
 **Active range**: `min(frontierOffset, 0)` to `max(frontierOffset - 1, depth - 1)`. Expands beyond the original box when the frontier has extended outward (negative) or inward past the far side (positive). When frontier is at 0 (untouched), range equals the original box.
 
+**Cursor tracking**: Shift+scroll moves the frontier to reflect where the action happened (target for fill, target+1 for collect). If the frontier is currently inside the box [0, depth-1], it is clamped so it cannot exit the box via shift+scroll. If outside the box, it moves freely toward the box. This keeps the visual indicator honest about where the tool is working while preventing shift+scroll from pushing the cursor out of the selection.
+
 **Wire format**: `ScrollActionC2SPayload` gains a `shifted` boolean. Client mixin detects shift via `InputConstants.isKeyDown(window, KEY_LSHIFT/KEY_RSHIFT)`. Server dispatches to `interiorFill`/`interiorCollect` when shifted.
 
 ### Phase 10: Auto-clear on item switch

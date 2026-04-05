@@ -218,6 +218,16 @@ public class ScrollActions {
 		}
 
 		if (placed > 0) {
+			int current = sel.frontierOffset();
+			int depth = box.depth();
+			// Move cursor unless in front of box (shift+up can't retract from front)
+			if (current >= 0) {
+				int next = (current <= depth - 1)
+						? Math.max(0, Math.min(targetOffset, depth - 1))
+						: targetOffset;
+				sel.setFrontier(next);
+				SelectionManager.sync(player);
+			}
 			player.sendOverlayMessage(Component.literal("Filled " + placed + " blocks"));
 		} else {
 			player.sendOverlayMessage(Component.literal("Nothing to fill"));
@@ -253,6 +263,16 @@ public class ScrollActions {
 		}
 
 		if (collected > 0) {
+			int current = sel.frontierOffset();
+			int depth = box.depth();
+			// Move cursor unless past far side (shift+down can't retract from far)
+			if (current <= depth - 1) {
+				int next = (current >= 0)
+						? Math.max(0, Math.min(targetOffset + 1, depth - 1))
+						: targetOffset + 1;
+				sel.setFrontier(next);
+				SelectionManager.sync(player);
+			}
 			player.sendOverlayMessage(Component.literal("Collected " + collected + " blocks"));
 		} else {
 			player.sendOverlayMessage(Component.literal("Nothing to collect"));
