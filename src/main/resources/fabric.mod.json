@@ -3,7 +3,7 @@
   "id": "stone_of_mending",
   "version": "${version}",
   "name": "Stone of Mending",
-  "description": "",
+  "description": "A face-based building tool that collects and places blocks in layers.",
   "authors": ["alvivar"],
   "contact": {
     "sources": "https://github.com/alvivar/stone-of-mending"

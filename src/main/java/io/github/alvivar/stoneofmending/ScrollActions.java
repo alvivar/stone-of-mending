@@ -51,7 +51,7 @@ public class ScrollActions {
 			collected++;
 		}
 
-		sel.advanceFrontier(1);
+		sel.setFrontier(sel.frontierOffset() + 1);
 		SelectionManager.sync(player);
 
 		if (collected > 0) {
@@ -341,23 +341,25 @@ public class ScrollActions {
 		int lower = Math.min(frontierOffset, 0);
 		int upper = Math.max(frontierOffset - 1, box.depth() - 1);
 		for (int offset = lower; offset <= upper; offset++) {
-			int result = sliceCollectStatus(level, box, offset);
-			if (result == 1) return offset;
-			if (result == -1) return null;
+			switch (checkSliceCollect(level, box, offset)) {
+				case INCOMPLETE -> { return offset; }
+				case BLOCKED -> { return null; }
+				case COMPLETE -> {}
+			}
 		}
 		return null;
 	}
 
-	/** Returns 1 = has collectible blocks, 0 = empty/nothing to collect, -1 = blocked (unloaded). */
-	private static int sliceCollectStatus(ServerLevel level, SelectionBox box, int offset) {
+	/** Like checkSlice but for collection: INCOMPLETE = has collectible blocks, COMPLETE = empty, BLOCKED = unloaded. */
+	private static SliceStatus checkSliceCollect(ServerLevel level, SelectionBox box, int offset) {
 		boolean found = false;
 		for (BlockPos pos : box.slicePositions(offset)) {
 			if (level.isOutsideBuildHeight(pos)) continue;
-			if (!level.isLoaded(pos)) return -1;
+			if (!level.isLoaded(pos)) return SliceStatus.BLOCKED;
 			BlockState state = level.getBlockState(pos);
 			if (!state.isAir() && !state.hasBlockEntity()) found = true;
 		}
-		return found ? 1 : 0;
+		return found ? SliceStatus.INCOMPLETE : SliceStatus.COMPLETE;
 	}
 
 	// --- Inventory helpers ---

@@ -64,17 +64,11 @@ public class SelectionRenderer {
 
 		// Bright frontier slice
 		int fb = box.frontierBlock(offset);
-		int sMinX, sMinY, sMinZ, sMaxX, sMaxY, sMaxZ;
 		switch (box.normal().getAxis()) {
-			case X -> { sMinX = fb; sMaxX = fb + 1; sMinY = box.minY(); sMaxY = box.maxY() + 1; sMinZ = box.minZ(); sMaxZ = box.maxZ() + 1; }
-			case Y -> { sMinX = box.minX(); sMaxX = box.maxX() + 1; sMinY = fb; sMaxY = fb + 1; sMinZ = box.minZ(); sMaxZ = box.maxZ() + 1; }
-			case Z -> { sMinX = box.minX(); sMaxX = box.maxX() + 1; sMinY = box.minY(); sMaxY = box.maxY() + 1; sMinZ = fb; sMaxZ = fb + 1; }
-			default -> { return; }
+			case X -> drawBox(poseStack, lines, cam, fb, box.minY(), box.minZ(), fb + 1, box.maxY() + 1, box.maxZ() + 1, COLOR_FRONTIER);
+			case Y -> drawBox(poseStack, lines, cam, box.minX(), fb, box.minZ(), box.maxX() + 1, fb + 1, box.maxZ() + 1, COLOR_FRONTIER);
+			case Z -> drawBox(poseStack, lines, cam, box.minX(), box.minY(), fb, box.maxX() + 1, box.maxY() + 1, fb + 1, COLOR_FRONTIER);
 		}
-
-		drawBox(poseStack, lines, cam,
-				sMinX, sMinY, sMinZ, sMaxX, sMaxY, sMaxZ,
-				COLOR_FRONTIER);
 	}
 
 	private static void drawBox(PoseStack poseStack, VertexConsumer lines, Vec3 cam,

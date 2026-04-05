@@ -54,10 +54,6 @@ public class Selection {
 		return frontierOffset;
 	}
 
-	public void advanceFrontier(int delta) {
-		this.frontierOffset += delta;
-	}
-
 	public void setFrontier(int offset) {
 		this.frontierOffset = offset;
 	}
