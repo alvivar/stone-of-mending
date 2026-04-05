@@ -1,9 +1,97 @@
-# Fabric Example Mod
+# Stone of Mending
 
-## Setup
+A face-based building tool for selecting a 3D region, peeling it layer by layer, rebuilding it from your offhand, and replacing materials across the whole selection. Fabric mod for Minecraft 26.1.
 
-For setup instructions please see the [fabric documentation page](https://docs.fabricmc.net/develop/getting-started/setting-up) that relates to the IDE that you are using.
+## Features
 
-## License
+- **Mark two corners** to define a 3D box selection
+- **Collect layers** with mining-style drops (scroll down)
+- **Place layers** from offhand material (scroll up)
+- **Smart range actions** with Shift+scroll — scans the active range for the next incomplete or collectible slice
+- **Replace all blocks** in the selection with offhand material (middle click)
+- **Frontier cursor** extends infinitely beyond the original box
+- **Visual rendering** — dim cyan box for the selection, bright slice for the frontier
+- **Offhand auto-refill** from inventory
+- **No size cap** — intentionally powerful
 
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+## Quick Start
+
+1. Grab the **Stone of Mending** from the Tools & Utilities creative tab
+2. Hold it in your main hand
+3. **Left-click** a block face to mark point A (this locks the slicing direction)
+4. **Right-click** another block to mark point B (completes the 3D box)
+5. Put blocks in your offhand
+6. **Scroll down** to collect, **scroll up** to place, **middle-click** to replace
+
+## Controls
+
+| Input               | Action                                                                     |
+| ------------------- | -------------------------------------------------------------------------- |
+| Left-click block    | Mark point A (locks face normal / slicing axis)                            |
+| Right-click block   | Mark point B (completes the 3D box)                                        |
+| Left-click air      | Clear selection                                                            |
+| Scroll down         | Collect the frontier slice (mining drops), cursor moves inward             |
+| Scroll up           | Place offhand material at the next outward slice, cursor moves outward     |
+| Shift + Scroll down | Smart collect: finds first collectible slice front→far across active range |
+| Shift + Scroll up   | Smart fill: finds first incomplete slice far→front across active range     |
+| Middle click        | Replace all eligible blocks in the box with offhand material               |
+
+## How It Works
+
+### Selection
+
+Point A defines a face and its normal direction — this becomes the slicing axis. Point B completes the opposite corner of the 3D box. The box renders as a dim cyan outline. The selection clears automatically when you switch to a different item.
+
+### Frontier
+
+The bright slice is the frontier cursor. It starts at the face you clicked (offset 0). Normal scroll moves it linearly — one slice per scroll tick. The frontier can move beyond the original box in either direction indefinitely.
+
+### Normal Scroll
+
+Linear cursor movement, one slice at a time.
+
+- **Scroll down** collects the current frontier slice and advances inward (+1).
+- **Scroll up** places offhand material at frontier−1 and moves outward (−1).
+
+On a valid, unblocked slice, normal scroll always moves the cursor — even if nothing was placed or collected. Blocked slices (unloaded chunks, out of build height) stop the cursor.
+
+### Shift+Scroll (Smart Jump)
+
+Scans the active range — the original box expanded to wherever the frontier has been — for the next interesting slice.
+
+- **Shift+scroll up** fills the deepest incomplete slice (far→front scan).
+- **Shift+scroll down** collects the first non-empty slice (front→far scan).
+
+Inside the box, the cursor follows the action but stays clamped within the box boundaries. Outside the box, it only retracts toward the box — never pushes further away.
+
+### Replace (Middle Click)
+
+Swaps every eligible block in the entire box with the offhand material. Grants mining-style drops for removed blocks. Skips air, liquids, block entities, and blocks that already match the offhand material.
+
+## Rules and Notes
+
+- **Mining-style drops** — blocks drop as if mined with an unenchanted netherite pickaxe. Stone → cobblestone, ores → ore drops, glass → nothing.
+- **No silk touch, no fortune** — just a plain strong pickaxe.
+- **Block entities are always skipped** — chests, furnaces, signs, etc. are never collected, placed over, or replaced.
+- **Liquids skipped during replace** — water and lava source blocks are left untouched. Waterlogged blocks (stairs, slabs) _are_ replaced.
+- **Offhand auto-refill** — when your offhand empties during placement, smart fill, or replacement, matching stacks are pulled from your inventory automatically.
+- **Auto-clear on item switch** — selection clears when you switch away from the Stone of Mending.
+- **No size cap** — this tool is intentionally overpowered. Select as large a region as you want.
+
+## Requirements
+
+- Minecraft 26.1
+- Fabric Loader 0.18.5+
+- Fabric API 0.144.3+26.1
+
+## Building from Source
+
+Requires Java 25+.
+
+```bash
+git clone <repo>
+cd stone-of-mending
+./gradlew build
+```
+
+The built jar will be in `build/libs/`.
