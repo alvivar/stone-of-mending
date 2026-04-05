@@ -106,6 +106,11 @@ public class ScrollActions {
 			}
 		}
 
+		// Prime offhand for next action
+		if (offhand.isEmpty()) {
+			refillOffhand(player, template);
+		}
+
 		if (placed > 0) {
 			player.sendOverlayMessage(Component.literal("Placed " + placed + " blocks"));
 		} else {
@@ -170,6 +175,11 @@ public class ScrollActions {
 			}
 		}
 
+		// Prime offhand for next action
+		if (offhand.isEmpty()) {
+			refillOffhand(player, template);
+		}
+
 		if (replaced > 0) {
 			player.sendOverlayMessage(Component.literal("Replaced " + replaced + " blocks"));
 		} else {
@@ -215,6 +225,11 @@ public class ScrollActions {
 				offhand.shrink(1);
 				placed++;
 			}
+		}
+
+		// Prime offhand for next action
+		if (offhand.isEmpty()) {
+			refillOffhand(player, template);
 		}
 
 		if (placed > 0) {
