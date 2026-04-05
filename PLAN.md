@@ -196,6 +196,10 @@ Input model:
 
 **Wire format**: `ScrollActionC2SPayload` gains a `shifted` boolean. Client mixin detects shift via `InputConstants.isKeyDown(window, KEY_LSHIFT/KEY_RSHIFT)`. Server dispatches to `interiorFill`/`interiorCollect` when shifted.
 
+### Phase 10: Auto-clear on item switch
+
+Server tick checks players with active selections. If a player is no longer holding the Stone of Mending in main hand, their selection is cleared and synced to the client. Uses `ServerTickEvents.END_SERVER_TICK`. Only iterates players in `SelectionManager` (skips empty map). Covers hotbar switching, item dropping, inventory changes. Collects players to clear into a snapshot list to avoid concurrent modification.
+
 ## MVP constraints
 
 - One active selection per player.

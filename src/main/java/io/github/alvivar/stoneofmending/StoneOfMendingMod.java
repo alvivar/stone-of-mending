@@ -1,6 +1,7 @@
 package io.github.alvivar.stoneofmending;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -101,6 +102,8 @@ public class StoneOfMendingMod implements ModInitializer {
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			SelectionManager.remove(handler.getPlayer());
 		});
+
+		ServerTickEvents.END_SERVER_TICK.register(SelectionManager::tick);
 
 		LOGGER.info("Stone of Mending loaded");
 	}
