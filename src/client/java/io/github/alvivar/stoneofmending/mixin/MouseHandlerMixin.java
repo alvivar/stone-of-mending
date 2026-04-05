@@ -1,5 +1,6 @@
 package io.github.alvivar.stoneofmending.mixin;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.alvivar.stoneofmending.ClientSelectionState;
 import io.github.alvivar.stoneofmending.MiddleClickC2SPayload;
 import io.github.alvivar.stoneofmending.ModItems;
@@ -28,7 +29,9 @@ public class MouseHandlerMixin {
 		if (!isStoneActive()) return;
 
 		int direction = yOffset > 0 ? 1 : -1;
-		ClientPlayNetworking.send(new ScrollActionC2SPayload(direction));
+		boolean shifted = InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_LSHIFT)
+				|| InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_RSHIFT);
+		ClientPlayNetworking.send(new ScrollActionC2SPayload(direction, shifted));
 		ci.cancel();
 	}
 

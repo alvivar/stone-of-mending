@@ -45,10 +45,13 @@ public class StoneOfMendingMod implements ModInitializer {
 			if (!player.level().dimension().equals(sel.dimension())) return;
 
 			int dir = payload.direction();
-			if (dir == -1) {
-				ScrollActions.collect(player, sel);
-			} else if (dir == 1) {
-				ScrollActions.place(player, sel);
+			boolean shifted = payload.shifted();
+			if (shifted) {
+				if (dir == 1) ScrollActions.interiorFill(player, sel);
+				else if (dir == -1) ScrollActions.interiorCollect(player, sel);
+			} else {
+				if (dir == -1) ScrollActions.collect(player, sel);
+				else if (dir == 1) ScrollActions.place(player, sel);
 			}
 		});
 

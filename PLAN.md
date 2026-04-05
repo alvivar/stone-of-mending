@@ -183,8 +183,18 @@ Input model:
 - Right-click block → mark B
 - Left-click air → clear selection
 - Scroll down → collect layer (frontier cursor, inward)
-- Scroll up → fill next incomplete layer (world scan, far-to-face then outward)
+- Scroll up → place layer (frontier cursor, outward)
+- Shift + scroll up → fill deepest incomplete slice inside box (no frontier)
+- Shift + scroll down → collect deepest non-empty slice inside box (no frontier)
 - Middle click → replace material in entire box
+
+### Phase 9: Interior operations (Shift+scroll)
+
+**9a. Interior fill (Shift+scroll up)**: Scans inside the original box only, from far side to face (`depth-1` → `0`). Finds the first incomplete slice (has replaceable positions). Places offhand material there. Does not touch the frontier. Skips blocked (unloaded) slices. Same placement rules as normal scroll-up (offhand BlockItem, canBeReplaced, auto-refill). Feedback: "Filled N blocks" or "Nothing to fill".
+
+**9b. Interior collect (Shift+scroll down)**: Scans inside the original box only, from far side to face (`depth-1` → `0`). Finds the first slice with collectible blocks (non-air, no block entity). Collects from that slice using mining-style drops. Does not touch the frontier. Aborts if target slice has unloaded positions. Feedback: "Collected N blocks" or "Nothing to collect".
+
+**Wire format**: `ScrollActionC2SPayload` gains a `shifted` boolean. Client mixin detects shift via `InputConstants.isKeyDown(window, KEY_LSHIFT/KEY_RSHIFT)`. Server dispatches to `interiorFill`/`interiorCollect` when shifted.
 
 ## MVP constraints
 

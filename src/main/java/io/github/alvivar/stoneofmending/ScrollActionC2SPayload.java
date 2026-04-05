@@ -9,7 +9,7 @@ import net.minecraft.resources.Identifier;
  * Client-to-server packet: player scrolled while holding Stone with active selection.
  * direction: +1 = scroll up (place), -1 = scroll down (collect)
  */
-public record ScrollActionC2SPayload(int direction) implements CustomPacketPayload {
+public record ScrollActionC2SPayload(int direction, boolean shifted) implements CustomPacketPayload {
 
 	public static final Type<ScrollActionC2SPayload> TYPE = new Type<>(
 			Identifier.fromNamespaceAndPath(StoneOfMendingMod.MOD_ID, "scroll_action"));
@@ -19,10 +19,11 @@ public record ScrollActionC2SPayload(int direction) implements CustomPacketPaylo
 
 	private static void write(FriendlyByteBuf buf, ScrollActionC2SPayload payload) {
 		buf.writeByte(payload.direction);
+		buf.writeBoolean(payload.shifted);
 	}
 
 	private static ScrollActionC2SPayload read(FriendlyByteBuf buf) {
-		return new ScrollActionC2SPayload(buf.readByte());
+		return new ScrollActionC2SPayload(buf.readByte(), buf.readBoolean());
 	}
 
 	@Override

@@ -177,6 +177,88 @@ public class ScrollActions {
 		}
 	}
 
+	// --- Interior operations (Shift+scroll) ---
+
+	public static void interiorFill(ServerPlayer player, Selection sel) {
+		ServerLevel level = (ServerLevel) player.level();
+		ItemStack offhand = player.getOffhandItem();
+
+		if (offhand.isEmpty() || !(offhand.getItem() instanceof BlockItem blockItem)) {
+			player.sendOverlayMessage(Component.literal("Hold a block in your offhand"));
+			return;
+		}
+
+		SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
+
+		Integer targetOffset = findNextInteriorFill(level, box);
+		if (targetOffset == null) {
+			player.sendOverlayMessage(Component.literal("Nothing to fill"));
+			return;
+		}
+
+		BlockState placeState = blockItem.getBlock().defaultBlockState();
+		ItemStack template = offhand.copy();
+
+		int placed = 0;
+		for (BlockPos pos : box.slicePositions(targetOffset)) {
+			if (offhand.isEmpty()) {
+				offhand = refillOffhand(player, template);
+				if (offhand.isEmpty()) break;
+			}
+			if (!level.isLoaded(pos)) continue;
+			if (level.isOutsideBuildHeight(pos)) continue;
+
+			BlockState existing = level.getBlockState(pos);
+			if (!existing.canBeReplaced()) continue;
+
+			if (level.setBlock(pos, placeState, Block.UPDATE_NEIGHBORS | Block.UPDATE_CLIENTS)) {
+				offhand.shrink(1);
+				placed++;
+			}
+		}
+
+		if (placed > 0) {
+			player.sendOverlayMessage(Component.literal("Filled " + placed + " blocks"));
+		} else {
+			player.sendOverlayMessage(Component.literal("Nothing to fill"));
+		}
+	}
+
+	public static void interiorCollect(ServerPlayer player, Selection sel) {
+		ServerLevel level = (ServerLevel) player.level();
+		SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
+
+		Integer targetOffset = findNextInteriorCollect(level, box);
+		if (targetOffset == null) {
+			player.sendOverlayMessage(Component.literal("Nothing to collect"));
+			return;
+		}
+
+		int collected = 0;
+		for (BlockPos pos : box.slicePositions(targetOffset)) {
+			BlockState state = level.getBlockState(pos);
+			if (state.isAir()) continue;
+			if (state.hasBlockEntity()) continue;
+
+			List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, VIRTUAL_PICKAXE);
+
+			if (!level.removeBlock(pos, false)) continue;
+
+			for (ItemStack drop : drops) {
+				if (!player.getInventory().add(drop)) {
+					player.drop(drop, false);
+				}
+			}
+			collected++;
+		}
+
+		if (collected > 0) {
+			player.sendOverlayMessage(Component.literal("Collected " + collected + " blocks"));
+		} else {
+			player.sendOverlayMessage(Component.literal("Nothing to collect"));
+		}
+	}
+
 	// --- Placement scan ---
 
 	private enum SliceStatus {
@@ -221,6 +303,42 @@ public class ScrollActions {
 		if (!anyInBounds)
 			return SliceStatus.BLOCKED;
 		return anyReplaceable ? SliceStatus.INCOMPLETE : SliceStatus.COMPLETE;
+	}
+
+	// --- Interior scan helpers ---
+
+	/** Finds the deepest incomplete slice inside the box. Aborts on blocked slices to preserve order. */
+	private static Integer findNextInteriorFill(ServerLevel level, SelectionBox box) {
+		for (int offset = box.depth() - 1; offset >= 0; offset--) {
+			switch (checkSlice(level, box, offset)) {
+				case INCOMPLETE -> { return offset; }
+				case BLOCKED -> { return null; }
+				case COMPLETE -> {}
+			}
+		}
+		return null;
+	}
+
+	/** Finds the deepest slice with collectible blocks inside the box. Aborts on unloaded slices. */
+	private static Integer findNextInteriorCollect(ServerLevel level, SelectionBox box) {
+		for (int offset = box.depth() - 1; offset >= 0; offset--) {
+			int result = sliceCollectStatus(level, box, offset);
+			if (result == 1) return offset;
+			if (result == -1) return null;
+		}
+		return null;
+	}
+
+	/** Returns 1 = has collectible blocks, 0 = empty/nothing to collect, -1 = blocked (unloaded). */
+	private static int sliceCollectStatus(ServerLevel level, SelectionBox box, int offset) {
+		boolean found = false;
+		for (BlockPos pos : box.slicePositions(offset)) {
+			if (level.isOutsideBuildHeight(pos)) continue;
+			if (!level.isLoaded(pos)) return -1;
+			BlockState state = level.getBlockState(pos);
+			if (!state.isAir() && !state.hasBlockEntity()) found = true;
+		}
+		return found ? 1 : 0;
 	}
 
 	// --- Inventory helpers ---
