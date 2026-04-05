@@ -190,7 +190,7 @@ public class ScrollActions {
 
 		SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
 
-		Integer targetOffset = findNextInteriorFill(level, box);
+		Integer targetOffset = findNextInteriorFill(level, box, sel.frontierOffset());
 		if (targetOffset == null) {
 			player.sendOverlayMessage(Component.literal("Nothing to fill"));
 			return;
@@ -228,7 +228,7 @@ public class ScrollActions {
 		ServerLevel level = (ServerLevel) player.level();
 		SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
 
-		Integer targetOffset = findNextInteriorCollect(level, box);
+		Integer targetOffset = findNextInteriorCollect(level, box, sel.frontierOffset());
 		if (targetOffset == null) {
 			player.sendOverlayMessage(Component.literal("Nothing to collect"));
 			return;
@@ -307,9 +307,11 @@ public class ScrollActions {
 
 	// --- Interior scan helpers ---
 
-	/** Finds the deepest incomplete slice inside the box. Aborts on blocked slices to preserve order. */
-	private static Integer findNextInteriorFill(ServerLevel level, SelectionBox box) {
-		for (int offset = box.depth() - 1; offset >= 0; offset--) {
+	/** Finds the deepest incomplete slice in the operating range. Scans far→face. Aborts on blocked. */
+	private static Integer findNextInteriorFill(ServerLevel level, SelectionBox box, int frontierOffset) {
+		int upper = Math.max(frontierOffset - 1, box.depth() - 1);
+		int lower = Math.min(frontierOffset, 0);
+		for (int offset = upper; offset >= lower; offset--) {
 			switch (checkSlice(level, box, offset)) {
 				case INCOMPLETE -> { return offset; }
 				case BLOCKED -> { return null; }
@@ -319,9 +321,11 @@ public class ScrollActions {
 		return null;
 	}
 
-	/** Finds the deepest slice with collectible blocks inside the box. Aborts on unloaded slices. */
-	private static Integer findNextInteriorCollect(ServerLevel level, SelectionBox box) {
-		for (int offset = box.depth() - 1; offset >= 0; offset--) {
+	/** Finds the first slice with collectible blocks in the operating range. Scans face→far. Aborts on blocked. */
+	private static Integer findNextInteriorCollect(ServerLevel level, SelectionBox box, int frontierOffset) {
+		int lower = Math.min(frontierOffset, 0);
+		int upper = Math.max(frontierOffset - 1, box.depth() - 1);
+		for (int offset = lower; offset <= upper; offset++) {
 			int result = sliceCollectStatus(level, box, offset);
 			if (result == 1) return offset;
 			if (result == -1) return null;

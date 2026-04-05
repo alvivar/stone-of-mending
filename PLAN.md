@@ -190,9 +190,11 @@ Input model:
 
 ### Phase 9: Interior operations (Shift+scroll)
 
-**9a. Interior fill (Shift+scroll up)**: Scans inside the original box only, from far side to face (`depth-1` → `0`). Finds the first incomplete slice (has replaceable positions). Places offhand material there. Does not touch the frontier. Skips blocked (unloaded) slices. Same placement rules as normal scroll-up (offhand BlockItem, canBeReplaced, auto-refill). Feedback: "Filled N blocks" or "Nothing to fill".
+**9a. Range fill (Shift+scroll up)**: Scans the active range from far side toward front. Finds the first incomplete slice. Places offhand material there. Does not touch the frontier. Aborts on blocked (unloaded) slices. Same placement rules as normal scroll-up (offhand BlockItem, canBeReplaced, auto-refill). Feedback: "Filled N blocks" or "Nothing to fill".
 
-**9b. Interior collect (Shift+scroll down)**: Scans inside the original box only, from far side to face (`depth-1` → `0`). Finds the first slice with collectible blocks (non-air, no block entity). Collects from that slice using mining-style drops. Does not touch the frontier. Aborts if target slice has unloaded positions. Feedback: "Collected N blocks" or "Nothing to collect".
+**9b. Range collect (Shift+scroll down)**: Scans the active range from front toward far side. Finds the first slice with collectible blocks (non-air, no block entity). Collects from that slice using mining-style drops. Does not touch the frontier. Aborts on blocked slices. Feedback: "Collected N blocks" or "Nothing to collect".
+
+**Active range**: `min(frontierOffset, 0)` to `max(frontierOffset - 1, depth - 1)`. Expands beyond the original box when the frontier has extended outward (negative) or inward past the far side (positive). When frontier is at 0 (untouched), range equals the original box.
 
 **Wire format**: `ScrollActionC2SPayload` gains a `shifted` boolean. Client mixin detects shift via `InputConstants.isKeyDown(window, KEY_LSHIFT/KEY_RSHIFT)`. Server dispatches to `interiorFill`/`interiorCollect` when shifted.
 
