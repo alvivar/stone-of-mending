@@ -287,8 +287,8 @@ All impactful actions play a sound to the acting player only (via `ClientboundSo
 
 **Sound palette — 3 families:**
 - Crystalline/attunement: `AMETHYST_BLOCK_CHIME` (mark A), `ENCHANTMENT_TABLE_USE` (mark B), `LODESTONE_COMPASS_LOCK` (change normal)
-- Work pulses: `EXPERIENCE_ORB_PICKUP` (collect), `LODESTONE_PLACE` (place/fill), `RESPAWN_ANCHOR_CHARGE` (replace)
-- Denial/limit: `BEACON_DEACTIVATE` (errors, clear), `RESPAWN_ANCHOR_DEPLETE` (inventory full)
+- Work pulses: `LODESTONE_BREAK` (collect), `LODESTONE_PLACE` (place/fill), `RESPAWN_ANCHOR_SET_SPAWN` (replace)
+- Denial/limit: `AMETHYST_BLOCK_HIT` (errors, clear), `CONDUIT_DEACTIVATE` (inventory full)
 
 **Silent on "nothing to do"** — avoids spam on empty slices during rapid scrolling.
 
