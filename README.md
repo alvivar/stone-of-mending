@@ -1,6 +1,6 @@
 # Stone of Mending
 
-A face-based building tool for selecting a 3D region, peeling it layer by layer, rebuilding it from your offhand, and replacing materials across the whole selection. Fabric mod for Minecraft 26.1.
+A face-based building tool for selecting a 3D region, peeling it layer by layer, rebuilding it from your offhand, and replacing materials across the whole selection. Fabric mod for Minecraft 26.1.1.
 
 ## Features
 
@@ -80,18 +80,35 @@ Swaps every eligible block in the entire box with the offhand material. Grants m
 
 ## Requirements
 
-- Minecraft 26.1
-- Fabric Loader 0.18.5+
-- Fabric API 0.144.3+26.1
+- Minecraft 26.1.1
+- Fabric Loader 0.18.6+
+- Fabric API 0.145.4+26.1.1
+
+## Installation
+
+### Singleplayer
+
+1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 26.1.1
+2. Download [Fabric API](https://modrinth.com/mod/fabric-api) and drop it in your `mods` folder
+3. Drop `stone-of-mending-1.0.0.jar` into your `.minecraft/mods/` folder
+4. Launch the game with the Fabric profile
+
+### Dedicated Server
+
+The mod must be installed on **both the server and every client**.
+
+1. Install Fabric Loader on the server
+2. Drop both Fabric API and `stone-of-mending-1.0.0.jar` into the server's `mods/` folder
+3. Each player also needs the mod installed on their client (see above)
 
 ## Building from Source
 
 Requires Java 25+.
 
 ```bash
-git clone <repo>
+git clone https://github.com/alvivar/stone-of-mending.git
 cd stone-of-mending
 ./gradlew build
 ```
 
-The built jar will be in `build/libs/`.
+The built jar is `build/libs/stone-of-mending-1.0.0.jar` — copy it to your `.minecraft/mods/` folder.
