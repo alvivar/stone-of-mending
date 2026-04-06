@@ -143,15 +143,17 @@ src/main/java/io/github/alvivar/stoneofmending/
   SelectionSyncPayload.java       — S2C packet (selection state to client)
   ScrollActionC2SPayload.java     — C2S packet (scroll direction ±1)
   SelectionBox.java               — shared geometry (bounds, face, frontier, slice positions)
-  ScrollActions.java              — collect + place logic
+  ScrollActions.java              — collect + place + replace + interior operations
   ClearSelectionC2SPayload.java   — C2S packet (clear selection)
+  MiddleClickC2SPayload.java      — C2S packet (material replacement)
+  SetNormalC2SPayload.java        — C2S packet (change normal from look direction)
 
 src/client/java/io/github/alvivar/stoneofmending/
   StoneOfMendingClient.java       — client init, packet receiver, disconnect cleanup
   ClientSelectionState.java       — client-side selection mirror
   SelectionRenderer.java          — world-space outline rendering
-  mixin/MouseHandlerMixin.java    — scroll interception
-  mixin/StartAttackMixin.java     — left-click air clears selection
+  mixin/MouseHandlerMixin.java    — scroll + middle-click interception
+  mixin/StartAttackMixin.java     — left-click air clears, Ctrl+click changes normal
 ```
 
 ### Phase 7: Polish and controls ✓
@@ -187,6 +189,7 @@ Input model:
 - Shift + scroll up → fill deepest incomplete slice inside box (no frontier)
 - Shift + scroll down → collect deepest non-empty slice inside box (no frontier)
 - Middle click → replace material in entire box
+- Ctrl + left-click → change normal to look direction, reset frontier
 
 ### Phase 9: Interior operations (Shift+scroll)
 
@@ -206,6 +209,51 @@ Input model:
 
 Server tick checks players with active selections. If a player is no longer holding the Stone of Mending in main hand, their selection is cleared and synced to the client. Uses `ServerTickEvents.END_SERVER_TICK`. Only iterates players in `SelectionManager` (skips empty map). Covers hotbar switching, item dropping, inventory changes. Collects players to clear into a snapshot list to avoid concurrent modification.
 
+### Phase 11: Item model, texture, and language ✓
+
+- 16×16 item texture: dark slate stone with glowing teal mending veins. Kinked diagonal seam from upper-right to lower-left, bright core glow at the knot point, one branch vein. Shading follows top-left light source (Minecraft standard).
+- Item model: standard `item/generated` pointing to the texture.
+- MC 26.1 item definition file: `assets/stone_of_mending/items/stone_of_mending.json` pointing to the model (required by 26.1's new item model system).
+- Language file: `en_us.json` with display name "Stone of Mending".
+- Texture generated via Python script (`gen_texture.py`) using Pillow.
+
+Files:
+```
+src/main/resources/assets/stone_of_mending/
+  items/stone_of_mending.json             — item definition (MC 26.1 required)
+  models/item/stone_of_mending.json       — item/generated model
+  textures/item/stone_of_mending.png      — 16×16 texture
+  lang/en_us.json                         — display name
+```
+
+### Phase 12: Ctrl+click to re-orient normal ✓
+
+Ctrl+left click to change the slicing direction based on where the player is looking. Frontier resets to 0.
+
+**Behavior:**
+- Ctrl+left click while holding the Stone with an active selection: new normal = dominant axis of player's look direction. Frontier resets to 0. A and B stay unchanged.
+- Ctrl+click always takes precedence over clear-on-miss and mark-A.
+
+**Precedence:** Ctrl+click > click-air-clear > click-block-mark-A.
+
+**Client (StartAttackMixin):**
+- `isCtrlWithStone()` helper checks player + Stone + selection + Ctrl key state.
+- Guards both `startAttack` (send payload + cancel) and `continueAttack` (cancel only, prevents creative-mode `AttackBlockCallback` re-entry through `continueDestroyBlock`).
+
+**Payload:** `SetNormalC2SPayload()` — empty, server computes direction from player's look vector.
+
+**Server handler:**
+- Validates: holding Stone, selection has A, same dimension.
+- Computes dominant axis from `player.getLookAngle()` via `normalFromLook()`.
+- Sets `sel.setNormal(newNormal)`, `sel.setFrontier(0)`.
+- Syncs + overlay message: "Normal: East" etc.
+
+**Files modified:**
+- `SetNormalC2SPayload.java` — empty C2S payload
+- `StartAttackMixin.java` — Ctrl detection, dual injection (startAttack + continueAttack)
+- `StoneOfMendingMod.java` — handler with `normalFromLook` + `directionName` helpers
+- `Selection.java` — `setNormal(Direction)` setter
+
 ## MVP constraints
 
 - One active selection per player.
@@ -214,9 +262,8 @@ Server tick checks players with active selections. If a player is no longer hold
 - No complex placement (stairs, slabs, oriented blocks).
 - No undo, no saved selections.
 - No selection size cap (the Stone of Mending is powerful by design).
-- No item texture or model yet (shows as missing texture).
-- No translation keys yet (literal English strings).
+- No translation keys yet (literal English strings for overlay messages).
 
 ## Done condition
 
-A player can hold the Stone, mark a 3D box, see the full selection outline and frontier slice, scroll down to collect layers inward (mining-style drops), scroll up to fill the next incomplete layer from offhand, and middle-click to replace all blocks in the box with offhand material. Placement and replacement auto-refill from inventory. The tool extends beyond the original selection in both directions.
+A player can hold the Stone, mark a 3D box, see the full selection outline and frontier slice, scroll down to collect layers inward (mining-style drops), scroll up to fill the next incomplete layer from offhand, and middle-click to replace all blocks in the box with offhand material. Placement and replacement auto-refill from inventory. The tool extends beyond the original selection in both directions. Ctrl+click to re-orient the slicing direction based on look direction. The item has a custom texture (dark stone with teal mending veins) and display name.

@@ -34,6 +34,7 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 | Scroll up           | Place offhand material at the next outward slice, cursor moves outward     |
 | Shift + Scroll down | Smart collect: finds first collectible slice front→far across active range |
 | Shift + Scroll up   | Smart fill: finds first incomplete slice far→front across active range     |
+| Ctrl + left-click  | Change slicing direction to where you're looking, reset frontier           |
 | Middle click        | Replace all eligible blocks in the box with offhand material               |
 
 ## How It Works
@@ -41,6 +42,8 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 ### Selection
 
 Point A defines a face and its normal direction — this becomes the slicing axis. Point B completes the opposite corner of the 3D box. The box renders as a dim cyan outline. The selection clears automatically when you switch to a different item.
+
+You can change the slicing direction at any time with **Ctrl+left-click** — it snaps to the dominant axis of where you're looking and resets the frontier to 0. No need to re-mark your points.
 
 ### Frontier
 
