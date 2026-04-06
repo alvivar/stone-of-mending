@@ -13,12 +13,13 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 - **Visual rendering** — dim cyan box for the selection, bright slice for the frontier
 - **Sound feedback** — distinct audio cues for marking, collecting, placing, replacing, and errors
 - **Offhand auto-refill** from inventory
+- **Passive item repair** — while held, the stone slowly mends the most damaged item in your inventory (~5 min full repair)
 - **No size cap** — intentionally powerful. Your inventory is the only constraint
 
 ## Quick Start
 
 1. Grab the **Stone of Mending** from the Tools & Utilities creative tab
-2. Hold it in your main hand
+2. Hold it in your main hand — it passively repairs your most damaged item while held
 3. **Left-click** a block face to mark point A (this locks the slicing direction)
 4. **Right-click** another block to mark point B (completes the 3D box)
 5. Put blocks in your offhand

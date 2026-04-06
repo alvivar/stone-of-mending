@@ -294,6 +294,21 @@ All impactful actions play a sound to the acting player only (via `ClientboundSo
 
 **Helper:** `ScrollActions.playSound(ServerPlayer, SoundEvent, float volume)` — package-private, reused from all three files.
 
+### Phase 15: Passive item repair ✓
+
+While the Stone of Mending is held in main hand, it passively repairs the most damaged repairable item in the player's inventory.
+
+**Rules:**
+- Every 60 ticks (3 seconds), scan inventory (slots 0–35 + armor + offhand)
+- Target: item with highest damage ratio (damage / maxDamage). Tie-break: highest absolute damage
+- Repair amount: `max(1, maxDamage / 100)` — ~1% per tick, minimum 1
+- Skip undamaged items, undamageable items
+- No sound, no particles — silent passive effect
+- No selection required — works anytime the stone is held
+- Independent from SelectionManager — separate tick logic in StoneOfMendingMod
+
+**Implementation:** Private `tickRepair(MinecraftServer)` method in StoneOfMendingMod, called from the same server tick event. Uses a static tick counter, fires every 20 ticks.
+
 ## MVP constraints
 
 - One active selection per player.

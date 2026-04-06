@@ -8,9 +8,12 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,7 +131,10 @@ public class StoneOfMendingMod implements ModInitializer {
 			SelectionManager.remove(handler.getPlayer());
 		});
 
-		ServerTickEvents.END_SERVER_TICK.register(SelectionManager::tick);
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			SelectionManager.tick(server);
+			tickRepair(server);
+		});
 
 		LOGGER.info("Stone of Mending loaded");
 	}
@@ -140,6 +146,40 @@ public class StoneOfMendingMod implements ModInitializer {
 		if (ax >= ay && ax >= az) return look.x >= 0 ? Direction.EAST : Direction.WEST;
 		if (ay >= az) return look.y >= 0 ? Direction.UP : Direction.DOWN;
 		return look.z >= 0 ? Direction.SOUTH : Direction.NORTH;
+	}
+
+	private static int repairTicks;
+
+	private static void tickRepair(MinecraftServer server) {
+		if (++repairTicks < 60) return;
+		repairTicks = 0;
+
+		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) continue;
+
+			ItemStack best = ItemStack.EMPTY;
+			float bestRatio = 0;
+			int bestDamage = 0;
+
+			Inventory inv = player.getInventory();
+			for (int i = 0; i < inv.getContainerSize(); i++) {
+				ItemStack stack = inv.getItem(i);
+				if (!stack.isDamaged()) continue;
+
+				int damage = stack.getDamageValue();
+				float ratio = (float) damage / stack.getMaxDamage();
+				if (ratio > bestRatio || (ratio == bestRatio && damage > bestDamage)) {
+					best = stack;
+					bestRatio = ratio;
+					bestDamage = damage;
+				}
+			}
+
+			if (!best.isEmpty()) {
+				int repair = Math.max(1, best.getMaxDamage() / 100);
+				best.setDamageValue(Math.max(0, best.getDamageValue() - repair));
+			}
+		}
 	}
 
 	private static String directionName(Direction dir) {
