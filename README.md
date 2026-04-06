@@ -11,6 +11,7 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 - **Replace all blocks** in the selection with offhand material (middle click)
 - **Frontier cursor** extends infinitely beyond the original box
 - **Visual rendering** — dim cyan box for the selection, bright slice for the frontier
+- **Sound feedback** — distinct audio cues for marking, collecting, placing, replacing, and errors
 - **Offhand auto-refill** from inventory
 - **No size cap** — intentionally powerful. Your inventory is the only constraint
 
@@ -34,7 +35,7 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 | Scroll up           | Place offhand material at the next outward slice, cursor moves outward     |
 | Shift + Scroll down | Smart collect: finds first collectible slice front→far across active range |
 | Shift + Scroll up   | Smart fill: finds first incomplete slice far→front across active range     |
-| Ctrl + left-click  | Change slicing direction to where you're looking, reset frontier           |
+| Ctrl + left-click   | Change slicing direction to where you're looking, reset frontier           |
 | Middle click        | Replace all eligible blocks in the box with offhand material               |
 
 ## How It Works
