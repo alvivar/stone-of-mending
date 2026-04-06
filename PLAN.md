@@ -254,6 +254,33 @@ Ctrl+left click to change the slicing direction based on where the player is loo
 - `StoneOfMendingMod.java` — handler with `normalFromLook` + `directionName` helpers
 - `Selection.java` — `setNormal(Direction)` setter
 
+### Phase 13: Inventory-limited collection
+
+Collection and replacement stop when the player's inventory is full instead of dropping items on the ground. The inventory is the natural limit of the stone's power.
+
+**Core rule:** Before removing any block, check if its drops fit in inventory. If they don't, stop immediately — don't remove that block or any further blocks.
+
+**Helper:** `canFitAll(Inventory, List<ItemStack>)` — copies slots 0–35 into a temp array, simulates inserting each drop (respecting `isSameItemSameComponents`, stack limits, empty slots). Read-only against real inventory. Called per-block; since drops are added to real inventory on success, each subsequent call sees the updated state.
+
+**Affected methods:**
+- `collect()` — stop on full, don't advance frontier on partial slice (remaining blocks exist)
+- `interiorCollect()` — stop on full, don't move cursor if stopped early
+- `replace()` — stop on full, no frontier concern (stateless over whole box)
+
+All three: remove `player.drop(drop, false)` fallback entirely. Empty drops (glass, etc.) need no inventory check — block is still removed.
+
+**Frontier behavior:** `collect()` only advances frontier (+1) if the entire slice was processed without hitting inventory full. Partial slice = frontier stays = player can scroll down again after making room. Same for `interiorCollect()` cursor tracking.
+
+**Messages (lore voice):**
+- Partial progress + full: "The stone gathered 12 blocks, then could carry no more."
+- Zero progress (already full): "The stone can carry no more."
+- Same pattern for replace: "The stone replaced 9 blocks, then could carry no more."
+
+**Unaffected methods:** `place()` and `interiorFill()` consume from offhand, don't produce drops.
+
+**Files modified:**
+- `ScrollActions.java` — `canFitAll` helper, modified collect/interiorCollect/replace loops, new messages, removed drop fallback
+
 ## MVP constraints
 
 - One active selection per player.
@@ -266,4 +293,4 @@ Ctrl+left click to change the slicing direction based on where the player is loo
 
 ## Done condition
 
-A player can hold the Stone, mark a 3D box, see the full selection outline and frontier slice, scroll down to collect layers inward (mining-style drops), scroll up to fill the next incomplete layer from offhand, and middle-click to replace all blocks in the box with offhand material. Placement and replacement auto-refill from inventory. The tool extends beyond the original selection in both directions. Ctrl+click to re-orient the slicing direction based on look direction. The item has a custom texture (dark stone with teal mending veins) and display name.
+A player can hold the Stone, mark a 3D box, see the full selection outline and frontier slice, scroll down to collect layers inward (mining-style drops), scroll up to fill the next incomplete layer from offhand, and middle-click to replace all blocks in the box with offhand material. Placement and replacement auto-refill from inventory. Collection and replacement stop when inventory is full (no drops on ground). The tool extends beyond the original selection in both directions. Ctrl+click to re-orient the slicing direction based on look direction. The item has a custom texture (dark stone with teal mending veins) and display name.

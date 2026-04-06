@@ -12,7 +12,7 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 - **Frontier cursor** extends infinitely beyond the original box
 - **Visual rendering** — dim cyan box for the selection, bright slice for the frontier
 - **Offhand auto-refill** from inventory
-- **No size cap** — intentionally powerful
+- **No size cap** — intentionally powerful. Your inventory is the only constraint
 
 ## Quick Start
 
@@ -53,7 +53,7 @@ The bright slice is the frontier cursor. It starts at the face you clicked (offs
 
 Linear cursor movement, one slice at a time.
 
-- **Scroll down** collects the current frontier slice and advances inward (+1).
+- **Scroll down** collects the current frontier slice and advances inward (+1). Stops early if your inventory fills up — the frontier stays put until the slice is fully cleared.
 - **Scroll up** places offhand material at frontier−1 and moves outward (−1).
 
 On a valid, unblocked slice, normal scroll always moves the cursor — even if nothing was placed or collected. Blocked slices (unloaded chunks, out of build height) stop the cursor.
@@ -73,6 +73,7 @@ Swaps every eligible block in the entire box with the offhand material. Grants m
 
 ## Rules and Notes
 
+- **Inventory is the limit** — collection and replacement stop when your inventory is full instead of dropping items on the ground. Partial progress is kept — the frontier stays on the current slice so you can make room and continue.
 - **Mining-style drops** — blocks drop as if mined with an unenchanted netherite pickaxe. Stone → cobblestone, ores → ore drops, glass → nothing.
 - **No silk touch, no fortune** — just a plain strong pickaxe.
 - **Block entities are always skipped** — chests, furnaces, signs, etc. are never collected, placed over, or replaced.
