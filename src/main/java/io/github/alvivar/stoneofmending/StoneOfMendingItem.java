@@ -29,18 +29,18 @@ public class StoneOfMendingItem extends Item {
 
 		Selection sel = SelectionManager.getOrCreate(player);
 		if (!sel.hasA()) {
-			player.sendOverlayMessage(Component.literal("Mark point A first (left-click)"));
+			player.sendOverlayMessage(Component.literal("The stone needs a first mark."));
 			return InteractionResult.SUCCESS;
 		}
 
 		if (!context.getLevel().dimension().equals(sel.dimension())) {
-			player.sendOverlayMessage(Component.literal("Point B must be in the same dimension as A"));
+			player.sendOverlayMessage(Component.literal("The stone cannot bind two worlds."));
 			return InteractionResult.SUCCESS;
 		}
 
 		sel.markB(context.getClickedPos().immutable());
 		SelectionManager.sync(player);
-		player.sendOverlayMessage(Component.literal("Selection complete"));
+		player.sendOverlayMessage(Component.literal("The shape is whole."));
 		return InteractionResult.SUCCESS;
 	}
 }

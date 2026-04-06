@@ -85,7 +85,7 @@ public class StoneOfMendingMod implements ModInitializer {
 			sel.setNormal(newNormal);
 			sel.setFrontier(0);
 			SelectionManager.sync(player);
-			player.sendOverlayMessage(Component.literal("Normal: " + directionName(newNormal)));
+			player.sendOverlayMessage(Component.literal("The stone now faces " + directionName(newNormal) + "."));
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(ClearSelectionC2SPayload.TYPE, (payload, context) -> {
@@ -116,7 +116,7 @@ public class StoneOfMendingMod implements ModInitializer {
 			Selection sel = SelectionManager.getOrCreate(serverPlayer);
 			sel.markA(pos.immutable(), direction, level.dimension());
 			SelectionManager.sync(serverPlayer);
-			serverPlayer.sendOverlayMessage(Component.literal("Point A marked"));
+			serverPlayer.sendOverlayMessage(Component.literal("The stone remembers the first mark."));
 			return InteractionResult.SUCCESS;
 		});
 

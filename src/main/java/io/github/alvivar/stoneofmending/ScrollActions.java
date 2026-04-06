@@ -25,7 +25,7 @@ public class ScrollActions {
 		// Abort if any position in the slice is unloaded
 		for (BlockPos pos : box.slicePositions(sel.frontierOffset())) {
 			if (!level.isLoaded(pos)) {
-				player.sendOverlayMessage(Component.literal("Slice not fully loaded"));
+				player.sendOverlayMessage(Component.literal("The stone cannot reach the whole slice."));
 				return;
 			}
 		}
@@ -55,9 +55,9 @@ public class ScrollActions {
 		SelectionManager.sync(player);
 
 		if (collected > 0) {
-			player.sendOverlayMessage(Component.literal("Collected " + collected + " blocks"));
+			player.sendOverlayMessage(Component.literal("The stone gathered " + collected + " blocks."));
 		} else {
-			player.sendOverlayMessage(Component.literal("Nothing to collect"));
+			player.sendOverlayMessage(Component.literal("The stone found nothing to gather."));
 		}
 	}
 
@@ -66,7 +66,7 @@ public class ScrollActions {
 		ItemStack offhand = player.getOffhandItem();
 
 		if (offhand.isEmpty() || !(offhand.getItem() instanceof BlockItem blockItem)) {
-			player.sendOverlayMessage(Component.literal("Hold a block in your offhand"));
+			player.sendOverlayMessage(Component.literal("The stone needs a block in your offhand."));
 			return;
 		}
 
@@ -74,7 +74,7 @@ public class ScrollActions {
 		int targetOffset = sel.frontierOffset() - 1;
 
 		if (checkSlice(level, box, targetOffset) == SliceStatus.BLOCKED) {
-			player.sendOverlayMessage(Component.literal("Slice is blocked"));
+			player.sendOverlayMessage(Component.literal("The stone cannot pass through that slice."));
 			return;
 		}
 
@@ -112,9 +112,9 @@ public class ScrollActions {
 		}
 
 		if (placed > 0) {
-			player.sendOverlayMessage(Component.literal("Placed " + placed + " blocks"));
+			player.sendOverlayMessage(Component.literal("The stone laid " + placed + " blocks."));
 		} else {
-			player.sendOverlayMessage(Component.literal("Nothing to place"));
+			player.sendOverlayMessage(Component.literal("The stone found nothing to lay."));
 		}
 	}
 
@@ -123,7 +123,7 @@ public class ScrollActions {
 		ItemStack offhand = player.getOffhandItem();
 
 		if (offhand.isEmpty() || !(offhand.getItem() instanceof BlockItem blockItem)) {
-			player.sendOverlayMessage(Component.literal("Hold a block in your offhand"));
+			player.sendOverlayMessage(Component.literal("The stone needs a block in your offhand."));
 			return;
 		}
 
@@ -181,9 +181,9 @@ public class ScrollActions {
 		}
 
 		if (replaced > 0) {
-			player.sendOverlayMessage(Component.literal("Replaced " + replaced + " blocks"));
+			player.sendOverlayMessage(Component.literal("The stone replaced " + replaced + " blocks."));
 		} else {
-			player.sendOverlayMessage(Component.literal("Nothing to replace"));
+			player.sendOverlayMessage(Component.literal("The stone found nothing to replace."));
 		}
 	}
 
@@ -194,7 +194,7 @@ public class ScrollActions {
 		ItemStack offhand = player.getOffhandItem();
 
 		if (offhand.isEmpty() || !(offhand.getItem() instanceof BlockItem blockItem)) {
-			player.sendOverlayMessage(Component.literal("Hold a block in your offhand"));
+			player.sendOverlayMessage(Component.literal("The stone needs a block in your offhand."));
 			return;
 		}
 
@@ -202,7 +202,7 @@ public class ScrollActions {
 
 		Integer targetOffset = findNextInteriorFill(level, box, sel.frontierOffset());
 		if (targetOffset == null) {
-			player.sendOverlayMessage(Component.literal("Nothing to fill"));
+			player.sendOverlayMessage(Component.literal("The stone found nothing to mend."));
 			return;
 		}
 
@@ -243,9 +243,9 @@ public class ScrollActions {
 				sel.setFrontier(next);
 				SelectionManager.sync(player);
 			}
-			player.sendOverlayMessage(Component.literal("Filled " + placed + " blocks"));
+			player.sendOverlayMessage(Component.literal("The stone mended " + placed + " blocks."));
 		} else {
-			player.sendOverlayMessage(Component.literal("Nothing to fill"));
+			player.sendOverlayMessage(Component.literal("The stone found nothing to mend."));
 		}
 	}
 
@@ -255,7 +255,7 @@ public class ScrollActions {
 
 		Integer targetOffset = findNextInteriorCollect(level, box, sel.frontierOffset());
 		if (targetOffset == null) {
-			player.sendOverlayMessage(Component.literal("Nothing to collect"));
+			player.sendOverlayMessage(Component.literal("The stone found nothing to gather."));
 			return;
 		}
 
@@ -288,9 +288,9 @@ public class ScrollActions {
 				sel.setFrontier(next);
 				SelectionManager.sync(player);
 			}
-			player.sendOverlayMessage(Component.literal("Collected " + collected + " blocks"));
+			player.sendOverlayMessage(Component.literal("The stone gathered " + collected + " blocks."));
 		} else {
-			player.sendOverlayMessage(Component.literal("Nothing to collect"));
+			player.sendOverlayMessage(Component.literal("The stone found nothing to gather."));
 		}
 	}
 
