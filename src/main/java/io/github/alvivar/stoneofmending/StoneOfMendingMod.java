@@ -6,9 +6,11 @@ import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +37,10 @@ public class StoneOfMendingMod implements ModInitializer {
 
 		PayloadTypeRegistry.serverboundPlay().register(
 				MiddleClickC2SPayload.TYPE, MiddleClickC2SPayload.STREAM_CODEC
+		);
+
+		PayloadTypeRegistry.serverboundPlay().register(
+				SetNormalC2SPayload.TYPE, SetNormalC2SPayload.STREAM_CODEC
 		);
 
 		ServerPlayNetworking.registerGlobalReceiver(ScrollActionC2SPayload.TYPE, (payload, context) -> {
@@ -65,6 +71,21 @@ public class StoneOfMendingMod implements ModInitializer {
 			if (!player.level().dimension().equals(sel.dimension())) return;
 
 			ScrollActions.replace(player, sel);
+		});
+
+		ServerPlayNetworking.registerGlobalReceiver(SetNormalC2SPayload.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
+
+			Selection sel = SelectionManager.get(player);
+			if (sel == null || !sel.hasA()) return;
+			if (!player.level().dimension().equals(sel.dimension())) return;
+
+			Direction newNormal = normalFromLook(player.getLookAngle());
+			sel.setNormal(newNormal);
+			sel.setFrontier(0);
+			SelectionManager.sync(player);
+			player.sendOverlayMessage(Component.literal("Normal: " + directionName(newNormal)));
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(ClearSelectionC2SPayload.TYPE, (payload, context) -> {
@@ -106,5 +127,25 @@ public class StoneOfMendingMod implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(SelectionManager::tick);
 
 		LOGGER.info("Stone of Mending loaded");
+	}
+
+	private static Direction normalFromLook(Vec3 look) {
+		double ax = Math.abs(look.x);
+		double ay = Math.abs(look.y);
+		double az = Math.abs(look.z);
+		if (ax >= ay && ax >= az) return look.x >= 0 ? Direction.EAST : Direction.WEST;
+		if (ay >= az) return look.y >= 0 ? Direction.UP : Direction.DOWN;
+		return look.z >= 0 ? Direction.SOUTH : Direction.NORTH;
+	}
+
+	private static String directionName(Direction dir) {
+		return switch (dir) {
+			case UP -> "Up";
+			case DOWN -> "Down";
+			case NORTH -> "North";
+			case SOUTH -> "South";
+			case EAST -> "East";
+			case WEST -> "West";
+		};
 	}
 }

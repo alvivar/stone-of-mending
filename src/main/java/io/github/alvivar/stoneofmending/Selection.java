@@ -54,6 +54,10 @@ public class Selection {
 		return frontierOffset;
 	}
 
+	public void setNormal(Direction direction) {
+		this.normal = direction;
+	}
+
 	public void setFrontier(int offset) {
 		this.frontierOffset = offset;
 	}

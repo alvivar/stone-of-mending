@@ -1,8 +1,10 @@
 package io.github.alvivar.stoneofmending.mixin;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.alvivar.stoneofmending.ClearSelectionC2SPayload;
 import io.github.alvivar.stoneofmending.ClientSelectionState;
 import io.github.alvivar.stoneofmending.ModItems;
+import io.github.alvivar.stoneofmending.SetNormalC2SPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.HitResult;
@@ -20,6 +22,16 @@ public class StartAttackMixin {
 		if (mc.player == null) return;
 		if (!mc.player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
 		if (!ClientSelectionState.hasSelection()) return;
+
+		// Ctrl+click: change normal to look direction
+		boolean ctrl = InputConstants.isKeyDown(mc.getWindow(), InputConstants.KEY_LCONTROL)
+				|| InputConstants.isKeyDown(mc.getWindow(), InputConstants.KEY_RCONTROL);
+		if (ctrl) {
+			ClientPlayNetworking.send(new SetNormalC2SPayload());
+			cir.setReturnValue(false);
+			return;
+		}
+
 		if (mc.hitResult == null || mc.hitResult.getType() != HitResult.Type.MISS) return;
 
 		ClientPlayNetworking.send(new ClearSelectionC2SPayload());
