@@ -11,6 +11,7 @@ import net.minecraft.world.phys.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Minecraft.class)
@@ -19,22 +20,34 @@ public class StartAttackMixin {
 	@Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
 	private void stoneOfMending$clearOnMiss(CallbackInfoReturnable<Boolean> cir) {
 		Minecraft mc = (Minecraft) (Object) this;
-		if (mc.player == null) return;
-		if (!mc.player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
-		if (!ClientSelectionState.hasSelection()) return;
+		if (!isCtrlWithStone(mc)) {
+			// Not a Ctrl+click — check for clear-on-miss
+			if (mc.player == null) return;
+			if (!mc.player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
+			if (!ClientSelectionState.hasSelection()) return;
+			if (mc.hitResult == null || mc.hitResult.getType() != HitResult.Type.MISS) return;
 
-		// Ctrl+click: change normal to look direction
-		boolean ctrl = InputConstants.isKeyDown(mc.getWindow(), InputConstants.KEY_LCONTROL)
-				|| InputConstants.isKeyDown(mc.getWindow(), InputConstants.KEY_RCONTROL);
-		if (ctrl) {
-			ClientPlayNetworking.send(new SetNormalC2SPayload());
+			ClientPlayNetworking.send(new ClearSelectionC2SPayload());
 			cir.setReturnValue(false);
 			return;
 		}
 
-		if (mc.hitResult == null || mc.hitResult.getType() != HitResult.Type.MISS) return;
-
-		ClientPlayNetworking.send(new ClearSelectionC2SPayload());
+		ClientPlayNetworking.send(new SetNormalC2SPayload());
 		cir.setReturnValue(false);
+	}
+
+	// Prevent continueAttack from reaching startDestroyBlock when Ctrl is held
+	@Inject(method = "continueAttack", at = @At("HEAD"), cancellable = true)
+	private void stoneOfMending$blockCtrlContinue(boolean down, CallbackInfo ci) {
+		if (!down) return;
+		if (isCtrlWithStone((Minecraft) (Object) this)) ci.cancel();
+	}
+
+	private static boolean isCtrlWithStone(Minecraft mc) {
+		if (mc.player == null) return false;
+		if (!mc.player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return false;
+		if (!ClientSelectionState.hasSelection()) return false;
+		return InputConstants.isKeyDown(mc.getWindow(), InputConstants.KEY_LCONTROL)
+				|| InputConstants.isKeyDown(mc.getWindow(), InputConstants.KEY_RCONTROL);
 	}
 }
