@@ -99,7 +99,7 @@ public class StoneOfMendingMod implements ModInitializer {
 
 			SelectionManager.remove(player);
 			ServerPlayNetworking.send(player, SelectionSyncPayload.from(new Selection()));
-			ScrollActions.playSound(player, SoundEvents.BEACON_DEACTIVATE, 0.3f);
+			ScrollActions.playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
 		});
 
 		// Left-click marks point A
