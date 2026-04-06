@@ -62,11 +62,4 @@ public class Selection {
 		this.frontierOffset = offset;
 	}
 
-	public void clear() {
-		this.pointA = null;
-		this.pointB = null;
-		this.normal = null;
-		this.dimension = null;
-		this.frontierOffset = 0;
-	}
 }

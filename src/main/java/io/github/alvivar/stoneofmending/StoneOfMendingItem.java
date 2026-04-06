@@ -28,8 +28,8 @@ public class StoneOfMendingItem extends Item {
 			return InteractionResult.PASS;
 		}
 
-		Selection sel = SelectionManager.getOrCreate(player);
-		if (!sel.hasA()) {
+		Selection sel = SelectionManager.get(player);
+		if (sel == null || !sel.hasA()) {
 			ScrollActions.playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
 			player.sendOverlayMessage(Component.literal("The stone needs a first mark."));
 			return InteractionResult.SUCCESS;
