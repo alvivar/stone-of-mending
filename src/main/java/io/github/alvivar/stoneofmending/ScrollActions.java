@@ -3,9 +3,14 @@ package io.github.alvivar.stoneofmending;
 import java.util.List;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
@@ -25,6 +30,7 @@ public class ScrollActions {
 		// Abort if any position in the slice is unloaded
 		for (BlockPos pos : box.slicePositions(sel.frontierOffset())) {
 			if (!level.isLoaded(pos)) {
+				playSound(player, SoundEvents.BEACON_DEACTIVATE, 0.3f);
 				player.sendOverlayMessage(Component.literal("The stone cannot reach the whole slice."));
 				return;
 			}
@@ -62,6 +68,7 @@ public class ScrollActions {
 		SelectionManager.sync(player);
 
 		if (inventoryFull) {
+			playSound(player, SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), 0.5f);
 			if (collected > 0) {
 				player.sendOverlayMessage(Component.literal(
 						"The stone gathered " + collected + " blocks, then could carry no more."));
@@ -69,6 +76,7 @@ public class ScrollActions {
 				player.sendOverlayMessage(Component.literal("The stone can carry no more."));
 			}
 		} else if (collected > 0) {
+			playSound(player, SoundEvents.LODESTONE_BREAK, 0.4f);
 			player.sendOverlayMessage(Component.literal("The stone gathered " + collected + " blocks."));
 		} else {
 			player.sendOverlayMessage(Component.literal("The stone found nothing to gather."));
@@ -80,6 +88,7 @@ public class ScrollActions {
 		ItemStack offhand = player.getOffhandItem();
 
 		if (offhand.isEmpty() || !(offhand.getItem() instanceof BlockItem blockItem)) {
+			playSound(player, SoundEvents.BEACON_DEACTIVATE, 0.3f);
 			player.sendOverlayMessage(Component.literal("The stone needs a block in your offhand."));
 			return;
 		}
@@ -88,6 +97,7 @@ public class ScrollActions {
 		int targetOffset = sel.frontierOffset() - 1;
 
 		if (checkSlice(level, box, targetOffset) == SliceStatus.BLOCKED) {
+			playSound(player, SoundEvents.BEACON_DEACTIVATE, 0.3f);
 			player.sendOverlayMessage(Component.literal("The stone cannot pass through that slice."));
 			return;
 		}
@@ -126,6 +136,7 @@ public class ScrollActions {
 		}
 
 		if (placed > 0) {
+			playSound(player, SoundEvents.LODESTONE_PLACE, 0.4f);
 			player.sendOverlayMessage(Component.literal("The stone laid " + placed + " blocks."));
 		} else {
 			player.sendOverlayMessage(Component.literal("The stone found nothing to lay."));
@@ -137,6 +148,7 @@ public class ScrollActions {
 		ItemStack offhand = player.getOffhandItem();
 
 		if (offhand.isEmpty() || !(offhand.getItem() instanceof BlockItem blockItem)) {
+			playSound(player, SoundEvents.BEACON_DEACTIVATE, 0.3f);
 			player.sendOverlayMessage(Component.literal("The stone needs a block in your offhand."));
 			return;
 		}
@@ -200,6 +212,7 @@ public class ScrollActions {
 		}
 
 		if (inventoryFull) {
+			playSound(player, SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), 0.5f);
 			if (replaced > 0) {
 				player.sendOverlayMessage(Component.literal(
 						"The stone replaced " + replaced + " blocks, then could carry no more."));
@@ -207,6 +220,7 @@ public class ScrollActions {
 				player.sendOverlayMessage(Component.literal("The stone can carry no more."));
 			}
 		} else if (replaced > 0) {
+			playSound(player, SoundEvents.RESPAWN_ANCHOR_CHARGE, 0.45f);
 			player.sendOverlayMessage(Component.literal("The stone replaced " + replaced + " blocks."));
 		} else {
 			player.sendOverlayMessage(Component.literal("The stone found nothing to replace."));
@@ -220,6 +234,7 @@ public class ScrollActions {
 		ItemStack offhand = player.getOffhandItem();
 
 		if (offhand.isEmpty() || !(offhand.getItem() instanceof BlockItem blockItem)) {
+			playSound(player, SoundEvents.BEACON_DEACTIVATE, 0.3f);
 			player.sendOverlayMessage(Component.literal("The stone needs a block in your offhand."));
 			return;
 		}
@@ -269,6 +284,7 @@ public class ScrollActions {
 				sel.setFrontier(next);
 				SelectionManager.sync(player);
 			}
+			playSound(player, SoundEvents.LODESTONE_PLACE, 0.4f);
 			player.sendOverlayMessage(Component.literal("The stone mended " + placed + " blocks."));
 		} else {
 			player.sendOverlayMessage(Component.literal("The stone found nothing to mend."));
@@ -322,6 +338,7 @@ public class ScrollActions {
 		}
 
 		if (inventoryFull) {
+			playSound(player, SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), 0.5f);
 			if (collected > 0) {
 				player.sendOverlayMessage(Component.literal(
 						"The stone gathered " + collected + " blocks, then could carry no more."));
@@ -329,6 +346,7 @@ public class ScrollActions {
 				player.sendOverlayMessage(Component.literal("The stone can carry no more."));
 			}
 		} else if (collected > 0) {
+			playSound(player, SoundEvents.LODESTONE_BREAK, 0.4f);
 			player.sendOverlayMessage(Component.literal("The stone gathered " + collected + " blocks."));
 		} else {
 			player.sendOverlayMessage(Component.literal("The stone found nothing to gather."));
@@ -401,6 +419,16 @@ public class ScrollActions {
 			if (!state.isAir() && !state.hasBlockEntity()) found = true;
 		}
 		return found ? SliceStatus.INCOMPLETE : SliceStatus.COMPLETE;
+	}
+
+	// --- Sound helper ---
+
+	static void playSound(ServerPlayer player, SoundEvent sound, float volume) {
+		player.connection.send(new ClientboundSoundPacket(
+				Holder.direct(sound), SoundSource.PLAYERS,
+				player.getX(), player.getY(), player.getZ(),
+				volume, 1.0f, player.level().getRandom().nextLong()
+		));
 	}
 
 	// --- Inventory helpers ---

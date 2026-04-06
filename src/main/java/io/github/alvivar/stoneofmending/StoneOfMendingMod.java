@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
@@ -85,6 +86,7 @@ public class StoneOfMendingMod implements ModInitializer {
 			sel.setNormal(newNormal);
 			sel.setFrontier(0);
 			SelectionManager.sync(player);
+			ScrollActions.playSound(player, SoundEvents.LODESTONE_COMPASS_LOCK, 0.5f);
 			player.sendOverlayMessage(Component.literal("The stone now faces " + directionName(newNormal) + "."));
 		});
 
@@ -97,6 +99,7 @@ public class StoneOfMendingMod implements ModInitializer {
 
 			SelectionManager.remove(player);
 			ServerPlayNetworking.send(player, SelectionSyncPayload.from(new Selection()));
+			ScrollActions.playSound(player, SoundEvents.BEACON_DEACTIVATE, 0.3f);
 		});
 
 		// Left-click marks point A
@@ -116,6 +119,7 @@ public class StoneOfMendingMod implements ModInitializer {
 			Selection sel = SelectionManager.getOrCreate(serverPlayer);
 			sel.markA(pos.immutable(), direction, level.dimension());
 			SelectionManager.sync(serverPlayer);
+			ScrollActions.playSound(serverPlayer, SoundEvents.AMETHYST_BLOCK_CHIME, 0.6f);
 			serverPlayer.sendOverlayMessage(Component.literal("The stone remembers the first mark."));
 			return InteractionResult.SUCCESS;
 		});

@@ -2,6 +2,7 @@ package io.github.alvivar.stoneofmending;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
@@ -29,17 +30,20 @@ public class StoneOfMendingItem extends Item {
 
 		Selection sel = SelectionManager.getOrCreate(player);
 		if (!sel.hasA()) {
+			ScrollActions.playSound(player, SoundEvents.BEACON_DEACTIVATE, 0.3f);
 			player.sendOverlayMessage(Component.literal("The stone needs a first mark."));
 			return InteractionResult.SUCCESS;
 		}
 
 		if (!context.getLevel().dimension().equals(sel.dimension())) {
+			ScrollActions.playSound(player, SoundEvents.BEACON_DEACTIVATE, 0.3f);
 			player.sendOverlayMessage(Component.literal("The stone cannot bind two worlds."));
 			return InteractionResult.SUCCESS;
 		}
 
 		sel.markB(context.getClickedPos().immutable());
 		SelectionManager.sync(player);
+		ScrollActions.playSound(player, SoundEvents.ENCHANTMENT_TABLE_USE, 0.5f);
 		player.sendOverlayMessage(Component.literal("The shape is whole."));
 		return InteractionResult.SUCCESS;
 	}

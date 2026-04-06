@@ -281,6 +281,19 @@ All three: remove `player.drop(drop, false)` fallback entirely. Empty drops (gla
 **Files modified:**
 - `ScrollActions.java` — `canFitAll` helper, modified collect/interiorCollect/replace loops, new messages, removed drop fallback
 
+### Phase 14: Sound feedback ✓
+
+All impactful actions play a sound to the acting player only (via `ClientboundSoundPacket` sent directly to the player's connection, not broadcast).
+
+**Sound palette — 3 families:**
+- Crystalline/attunement: `AMETHYST_BLOCK_CHIME` (mark A), `ENCHANTMENT_TABLE_USE` (mark B), `LODESTONE_COMPASS_LOCK` (change normal)
+- Work pulses: `EXPERIENCE_ORB_PICKUP` (collect), `LODESTONE_PLACE` (place/fill), `RESPAWN_ANCHOR_CHARGE` (replace)
+- Denial/limit: `BEACON_DEACTIVATE` (errors, clear), `RESPAWN_ANCHOR_DEPLETE` (inventory full)
+
+**Silent on "nothing to do"** — avoids spam on empty slices during rapid scrolling.
+
+**Helper:** `ScrollActions.playSound(ServerPlayer, SoundEvent, float volume)` — package-private, reused from all three files.
+
 ## MVP constraints
 
 - One active selection per player.
