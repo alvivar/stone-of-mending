@@ -9,17 +9,18 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 - **Place layers** from offhand material (scroll up)
 - **Smart range actions** with Shift+scroll — scans the active range for the next incomplete or collectible slice
 - **Replace all blocks** in the selection with offhand material (middle click)
+- **Border-only slices** with Ctrl+scroll — collect or place just the perimeter ring, great for hollow structures
 - **Frontier cursor** extends infinitely beyond the original box
 - **Visual rendering** — dim cyan box for the selection, bright slice for the frontier
 - **Sound feedback** — distinct audio cues for marking, collecting, placing, replacing, and errors
 - **Offhand auto-refill** from inventory
-- **Passive item repair** — while held, the stone slowly mends the most damaged item in your inventory (~5 min full repair)
+- **Passive item repair** — while held, the stone slowly mends the most damaged item in your inventory (~7 min full repair)
 - **No size cap** — intentionally powerful. Your inventory is the only constraint
 
 ## Quick Start
 
 1. Grab the **Stone of Mending** from the Tools & Utilities creative tab
-2. Hold it in your main hand — it passively repairs your most damaged item while held
+2. Hold it in your main hand — it passively repairs your most damaged item while held (~7 min full repair)
 3. **Left-click** a block face to mark point A (this locks the slicing direction)
 4. **Right-click** another block to mark point B (completes the 3D box)
 5. Put blocks in your offhand
@@ -34,6 +35,8 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 | Left-click air      | Clear selection                                                            |
 | Scroll down         | Collect the frontier slice (mining drops), cursor moves inward             |
 | Scroll up           | Place offhand material at the next outward slice, cursor moves outward     |
+| Ctrl + Scroll down  | Collect border only — perimeter ring of the current slice                  |
+| Ctrl + Scroll up    | Place border only — perimeter ring from offhand material                   |
 | Shift + Scroll down | Smart collect: finds first collectible slice front→far across active range |
 | Shift + Scroll up   | Smart fill: finds first incomplete slice far→front across active range     |
 | Ctrl + left-click   | Change slicing direction to where you're looking, reset frontier           |
