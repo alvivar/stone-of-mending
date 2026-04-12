@@ -218,6 +218,7 @@ Server tick checks players with active selections. If a player is no longer hold
 - Texture generated via Python script (`gen_texture.py`) using Pillow.
 
 Files:
+
 ```
 src/main/resources/assets/stone_of_mending/
   items/stone_of_mending.json             — item definition (MC 26.1 required)
@@ -231,24 +232,28 @@ src/main/resources/assets/stone_of_mending/
 Ctrl+left click to change the slicing direction based on where the player is looking. Frontier resets to 0.
 
 **Behavior:**
+
 - Ctrl+left click while holding the Stone with an active selection: new normal = dominant axis of player's look direction. Frontier resets to 0. A and B stay unchanged.
 - Ctrl+click always takes precedence over clear-on-miss and mark-A.
 
 **Precedence:** Ctrl+click > click-air-clear > click-block-mark-A.
 
 **Client (StartAttackMixin):**
+
 - `isCtrlWithStone()` helper checks player + Stone + selection + Ctrl key state.
 - Guards both `startAttack` (send payload + cancel) and `continueAttack` (cancel only, prevents creative-mode `AttackBlockCallback` re-entry through `continueDestroyBlock`).
 
 **Payload:** `SetNormalC2SPayload()` — empty, server computes direction from player's look vector.
 
 **Server handler:**
+
 - Validates: holding Stone, selection has A, same dimension.
 - Computes dominant axis from `player.getLookAngle()` via `normalFromLook()`.
 - Sets `sel.setNormal(newNormal)`, `sel.setFrontier(0)`.
 - Syncs + overlay message: "Normal: East" etc.
 
 **Files modified:**
+
 - `SetNormalC2SPayload.java` — empty C2S payload
 - `StartAttackMixin.java` — Ctrl detection, dual injection (startAttack + continueAttack)
 - `StoneOfMendingMod.java` — handler with `normalFromLook` + `directionName` helpers
@@ -263,6 +268,7 @@ Collection and replacement stop when the player's inventory is full instead of d
 **Helper:** `canFitAll(Inventory, List<ItemStack>)` — copies slots 0–35 into a temp array, simulates inserting each drop (respecting `isSameItemSameComponents`, stack limits, empty slots). Read-only against real inventory. Called per-block; since drops are added to real inventory on success, each subsequent call sees the updated state.
 
 **Affected methods:**
+
 - `collect()` — stop on full, don't advance frontier on partial slice (remaining blocks exist)
 - `interiorCollect()` — stop on full, don't move cursor if stopped early
 - `replace()` — stop on full, no frontier concern (stateless over whole box)
@@ -272,6 +278,7 @@ All three: remove `player.drop(drop, false)` fallback entirely. Empty drops (gla
 **Frontier behavior:** `collect()` only advances frontier (+1) if the entire slice was processed without hitting inventory full. Partial slice = frontier stays = player can scroll down again after making room. Same for `interiorCollect()` cursor tracking.
 
 **Messages (lore voice):**
+
 - Partial progress + full: "The stone gathered 12 blocks, then could carry no more."
 - Zero progress (already full): "The stone can carry no more."
 - Same pattern for replace: "The stone replaced 9 blocks, then could carry no more."
@@ -279,6 +286,7 @@ All three: remove `player.drop(drop, false)` fallback entirely. Empty drops (gla
 **Unaffected methods:** `place()` and `interiorFill()` consume from offhand, don't produce drops.
 
 **Files modified:**
+
 - `ScrollActions.java` — `canFitAll` helper, modified collect/interiorCollect/replace loops, new messages, removed drop fallback
 
 ### Phase 14: Sound feedback ✓
@@ -286,6 +294,7 @@ All three: remove `player.drop(drop, false)` fallback entirely. Empty drops (gla
 All impactful actions play a sound to the acting player only (via `ClientboundSoundPacket` sent directly to the player's connection, not broadcast).
 
 **Sound palette — 3 families:**
+
 - Crystalline/attunement: `AMETHYST_BLOCK_CHIME` (mark A), `ENCHANTMENT_TABLE_USE` (mark B), `LODESTONE_COMPASS_LOCK` (change normal)
 - Work pulses: `LODESTONE_BREAK` (collect), `LODESTONE_PLACE` (place/fill), `RESPAWN_ANCHOR_SET_SPAWN` (replace)
 - Denial/limit: `AMETHYST_BLOCK_HIT` (errors, clear), `CONDUIT_DEACTIVATE` (inventory full)
@@ -299,7 +308,8 @@ All impactful actions play a sound to the acting player only (via `ClientboundSo
 While the Stone of Mending is held in main hand, it passively repairs the most damaged repairable item in the player's inventory.
 
 **Rules:**
-- Every 60 ticks (3 seconds), scan inventory (slots 0–35 + armor + offhand)
+
+- Every 80 ticks (4 seconds), scan inventory (slots 0–35 + armor + offhand)
 - Target: item with highest damage ratio (damage / maxDamage). Tie-break: highest absolute damage
 - Repair amount: `max(1, maxDamage / 100)` — ~1% per tick, minimum 1
 - Skip undamaged items, undamageable items
@@ -307,7 +317,29 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 - No selection required — works anytime the stone is held
 - Independent from SelectionManager — separate tick logic in StoneOfMendingMod
 
-**Implementation:** Private `tickRepair(MinecraftServer)` method in StoneOfMendingMod, called from the same server tick event. Uses a static tick counter, fires every 20 ticks.
+**Implementation:** Private `tickRepair(MinecraftServer)` method in StoneOfMendingMod, called from the same server tick event. Uses a static tick counter, fires every 80 ticks.
+
+### Phase 16: Ctrl+scroll — Border-only slices ✓
+
+Ctrl+scroll down/up collects/places only the perimeter ring of the current slice, not the full area.
+
+**Geometry:** `SelectionBox.borderPositions(int offset)` — efficient perimeter iteration. If either non-normal dimension ≤ 2, returns the full slice (all blocks are border). Otherwise emits first row, last row, and left/right edges for middle rows. No duplicates.
+
+**Input:** `ScrollActionC2SPayload` gains a `ctrl` boolean. Client mixin detects Ctrl key state alongside Shift. Shift wins over Ctrl (Ctrl+Shift+scroll = shift behavior).
+
+**Actions:** `ScrollActions.collectBorder()` and `ScrollActions.placeBorder()` — dedicated methods using `borderPositions()` with border-aware preflight checks. Same frontier semantics as normal scroll (advance one step per scroll). Same inventory-limited collection rules. Same sounds and messages.
+
+**Server dispatch:** shifted → interior actions, else ctrl → border actions, else → normal actions.
+
+**Not included:** Ctrl+Shift combo (shift wins), Ctrl+middle-click border replace (deferred).
+
+**Files modified:**
+
+- `SelectionBox.java` — `borderPositions(int offset)`
+- `ScrollActionC2SPayload.java` — add `ctrl` field
+- `MouseHandlerMixin.java` — detect Ctrl key, send it
+- `StoneOfMendingMod.java` — dispatch ctrl to border actions
+- `ScrollActions.java` — `collectBorder()`, `placeBorder()`
 
 ## MVP constraints
 

@@ -25,33 +25,47 @@ public class MouseHandlerMixin {
 
 	@Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
 	private void stoneOfMending$interceptScroll(long window, double xOffset, double yOffset, CallbackInfo ci) {
-		if (yOffset == 0) return;
-		if (!isStoneActive()) return;
+		if (yOffset == 0)
+			return;
+		if (!isStoneActive())
+			return;
 
 		int direction = yOffset > 0 ? 1 : -1;
 		boolean shifted = InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_LSHIFT)
 				|| InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_RSHIFT);
-		ClientPlayNetworking.send(new ScrollActionC2SPayload(direction, shifted));
+		boolean ctrl = !shifted
+				&& (InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_LCONTROL)
+						|| InputConstants.isKeyDown(minecraft.getWindow(), InputConstants.KEY_RCONTROL));
+		ClientPlayNetworking.send(new ScrollActionC2SPayload(direction, shifted, ctrl));
 		ci.cancel();
 	}
 
 	@Inject(method = "onButton", at = @At("HEAD"), cancellable = true)
-	private void stoneOfMending$interceptMiddleClick(long window, MouseButtonInfo buttonInfo, int action, CallbackInfo ci) {
-		if (action != 1) return; // GLFW_PRESS
-		if (buttonInfo.button() != 2) return; // middle button
-		if (!isStoneActive()) return;
+	private void stoneOfMending$interceptMiddleClick(long window, MouseButtonInfo buttonInfo, int action,
+			CallbackInfo ci) {
+		if (action != 1)
+			return; // GLFW_PRESS
+		if (buttonInfo.button() != 2)
+			return; // middle button
+		if (!isStoneActive())
+			return;
 
 		ClientPlayNetworking.send(new MiddleClickC2SPayload());
 		ci.cancel();
 	}
 
 	private boolean isStoneActive() {
-		if (minecraft.screen != null) return false;
-		if (minecraft.player == null) return false;
-		if (!minecraft.player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return false;
-		if (!ClientSelectionState.isComplete()) return false;
+		if (minecraft.screen != null)
+			return false;
+		if (minecraft.player == null)
+			return false;
+		if (!minecraft.player.getMainHandItem().is(ModItems.STONE_OF_MENDING))
+			return false;
+		if (!ClientSelectionState.isComplete())
+			return false;
 		if (ClientSelectionState.dimension() != null && minecraft.level != null
-				&& !minecraft.level.dimension().equals(ClientSelectionState.dimension())) return false;
+				&& !minecraft.level.dimension().equals(ClientSelectionState.dimension()))
+			return false;
 		return true;
 	}
 }

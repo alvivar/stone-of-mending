@@ -161,8 +161,7 @@ public class ScrollActions {
 
 		int replaced = 0;
 		boolean inventoryFull = false;
-		outer:
-		for (int offset = depth - 1; offset >= 0; offset--) {
+		outer: for (int offset = depth - 1; offset >= 0; offset--) {
 			for (BlockPos pos : box.slicePositions(offset)) {
 				if (offhand.isEmpty()) {
 					offhand = refillOffhand(player, template);
@@ -227,6 +226,139 @@ public class ScrollActions {
 		}
 	}
 
+	// --- Border operations (Ctrl+scroll) ---
+
+	public static void collectBorder(ServerPlayer player, Selection sel) {
+		ServerLevel level = (ServerLevel) player.level();
+		SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
+		List<BlockPos> border = box.borderPositions(sel.frontierOffset());
+
+		for (BlockPos pos : border) {
+			if (!level.isLoaded(pos)) {
+				playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
+				player.sendOverlayMessage(Component.literal("The stone cannot reach the whole slice."));
+				return;
+			}
+		}
+
+		int collected = 0;
+		boolean inventoryFull = false;
+		for (BlockPos pos : border) {
+			BlockState state = level.getBlockState(pos);
+			if (state.isAir())
+				continue;
+			if (state.hasBlockEntity())
+				continue;
+
+			List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, VIRTUAL_PICKAXE);
+
+			if (!drops.isEmpty() && !canFitAll(player.getInventory(), drops)) {
+				inventoryFull = true;
+				break;
+			}
+
+			if (!level.removeBlock(pos, false))
+				continue;
+
+			for (ItemStack drop : drops) {
+				player.getInventory().add(drop);
+			}
+			collected++;
+		}
+
+		if (!inventoryFull) {
+			sel.setFrontier(sel.frontierOffset() + 1);
+		}
+		SelectionManager.sync(player);
+
+		if (inventoryFull) {
+			playSound(player, SoundEvents.CONDUIT_DEACTIVATE, 0.5f);
+			if (collected > 0) {
+				player.sendOverlayMessage(Component.literal(
+						"The stone gathered " + collected + " blocks, then could carry no more."));
+			} else {
+				player.sendOverlayMessage(Component.literal("The stone can carry no more."));
+			}
+		} else if (collected > 0) {
+			playSound(player, SoundEvents.LODESTONE_BREAK, 0.4f);
+			player.sendOverlayMessage(Component.literal("The stone gathered " + collected + " blocks."));
+		} else {
+			player.sendOverlayMessage(Component.literal("The stone found nothing to gather."));
+		}
+	}
+
+	public static void placeBorder(ServerPlayer player, Selection sel) {
+		ServerLevel level = (ServerLevel) player.level();
+		ItemStack offhand = player.getOffhandItem();
+
+		if (offhand.isEmpty() || !(offhand.getItem() instanceof BlockItem blockItem)) {
+			playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
+			player.sendOverlayMessage(Component.literal("The stone needs a block in your offhand."));
+			return;
+		}
+
+		SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
+		int targetOffset = sel.frontierOffset() - 1;
+		List<BlockPos> border = box.borderPositions(targetOffset);
+
+		// Check if border slice is reachable
+		boolean anyInBounds = false;
+		for (BlockPos pos : border) {
+			if (level.isOutsideBuildHeight(pos))
+				continue;
+			anyInBounds = true;
+			if (!level.isLoaded(pos)) {
+				playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
+				player.sendOverlayMessage(Component.literal("The stone cannot pass through that slice."));
+				return;
+			}
+		}
+		if (!anyInBounds) {
+			playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
+			player.sendOverlayMessage(Component.literal("The stone cannot pass through that slice."));
+			return;
+		}
+
+		sel.setFrontier(targetOffset);
+		SelectionManager.sync(player);
+
+		BlockState placeState = blockItem.getBlock().defaultBlockState();
+		ItemStack template = offhand.copy();
+
+		int placed = 0;
+		for (BlockPos pos : border) {
+			if (offhand.isEmpty()) {
+				offhand = refillOffhand(player, template);
+				if (offhand.isEmpty())
+					break;
+			}
+			if (!level.isLoaded(pos))
+				continue;
+			if (level.isOutsideBuildHeight(pos))
+				continue;
+
+			BlockState existing = level.getBlockState(pos);
+			if (!existing.canBeReplaced())
+				continue;
+
+			if (level.setBlock(pos, placeState, Block.UPDATE_NEIGHBORS | Block.UPDATE_CLIENTS)) {
+				offhand.shrink(1);
+				placed++;
+			}
+		}
+
+		if (offhand.isEmpty()) {
+			refillOffhand(player, template);
+		}
+
+		if (placed > 0) {
+			playSound(player, SoundEvents.LODESTONE_PLACE, 0.4f);
+			player.sendOverlayMessage(Component.literal("The stone laid " + placed + " blocks."));
+		} else {
+			player.sendOverlayMessage(Component.literal("The stone found nothing to lay."));
+		}
+	}
+
 	// --- Interior operations (Shift+scroll) ---
 
 	public static void interiorFill(ServerPlayer player, Selection sel) {
@@ -254,13 +386,17 @@ public class ScrollActions {
 		for (BlockPos pos : box.slicePositions(targetOffset)) {
 			if (offhand.isEmpty()) {
 				offhand = refillOffhand(player, template);
-				if (offhand.isEmpty()) break;
+				if (offhand.isEmpty())
+					break;
 			}
-			if (!level.isLoaded(pos)) continue;
-			if (level.isOutsideBuildHeight(pos)) continue;
+			if (!level.isLoaded(pos))
+				continue;
+			if (level.isOutsideBuildHeight(pos))
+				continue;
 
 			BlockState existing = level.getBlockState(pos);
-			if (!existing.canBeReplaced()) continue;
+			if (!existing.canBeReplaced())
+				continue;
 
 			if (level.setBlock(pos, placeState, Block.UPDATE_NEIGHBORS | Block.UPDATE_CLIENTS)) {
 				offhand.shrink(1);
@@ -305,8 +441,10 @@ public class ScrollActions {
 		boolean inventoryFull = false;
 		for (BlockPos pos : box.slicePositions(targetOffset)) {
 			BlockState state = level.getBlockState(pos);
-			if (state.isAir()) continue;
-			if (state.hasBlockEntity()) continue;
+			if (state.isAir())
+				continue;
+			if (state.hasBlockEntity())
+				continue;
 
 			List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, VIRTUAL_PICKAXE);
 
@@ -315,7 +453,8 @@ public class ScrollActions {
 				break;
 			}
 
-			if (!level.removeBlock(pos, false)) continue;
+			if (!level.removeBlock(pos, false))
+				continue;
 
 			for (ItemStack drop : drops) {
 				player.getInventory().add(drop);
@@ -381,42 +520,64 @@ public class ScrollActions {
 
 	// --- Interior scan helpers ---
 
-	/** Finds the deepest incomplete slice in the operating range. Scans far→face. Aborts on blocked. */
+	/**
+	 * Finds the deepest incomplete slice in the operating range. Scans far→face.
+	 * Aborts on blocked.
+	 */
 	private static Integer findNextInteriorFill(ServerLevel level, SelectionBox box, int frontierOffset) {
 		int upper = Math.max(frontierOffset - 1, box.depth() - 1);
 		int lower = Math.min(frontierOffset, 0);
 		for (int offset = upper; offset >= lower; offset--) {
 			switch (checkSlice(level, box, offset)) {
-				case INCOMPLETE -> { return offset; }
-				case BLOCKED -> { return null; }
-				case COMPLETE -> {}
+				case INCOMPLETE -> {
+					return offset;
+				}
+				case BLOCKED -> {
+					return null;
+				}
+				case COMPLETE -> {
+				}
 			}
 		}
 		return null;
 	}
 
-	/** Finds the first slice with collectible blocks in the operating range. Scans face→far. Aborts on blocked. */
+	/**
+	 * Finds the first slice with collectible blocks in the operating range. Scans
+	 * face→far. Aborts on blocked.
+	 */
 	private static Integer findNextInteriorCollect(ServerLevel level, SelectionBox box, int frontierOffset) {
 		int lower = Math.min(frontierOffset, 0);
 		int upper = Math.max(frontierOffset - 1, box.depth() - 1);
 		for (int offset = lower; offset <= upper; offset++) {
 			switch (checkSliceCollect(level, box, offset)) {
-				case INCOMPLETE -> { return offset; }
-				case BLOCKED -> { return null; }
-				case COMPLETE -> {}
+				case INCOMPLETE -> {
+					return offset;
+				}
+				case BLOCKED -> {
+					return null;
+				}
+				case COMPLETE -> {
+				}
 			}
 		}
 		return null;
 	}
 
-	/** Like checkSlice but for collection: INCOMPLETE = has collectible blocks, COMPLETE = empty, BLOCKED = unloaded. */
+	/**
+	 * Like checkSlice but for collection: INCOMPLETE = has collectible blocks,
+	 * COMPLETE = empty, BLOCKED = unloaded.
+	 */
 	private static SliceStatus checkSliceCollect(ServerLevel level, SelectionBox box, int offset) {
 		boolean found = false;
 		for (BlockPos pos : box.slicePositions(offset)) {
-			if (level.isOutsideBuildHeight(pos)) continue;
-			if (!level.isLoaded(pos)) return SliceStatus.BLOCKED;
+			if (level.isOutsideBuildHeight(pos))
+				continue;
+			if (!level.isLoaded(pos))
+				return SliceStatus.BLOCKED;
 			BlockState state = level.getBlockState(pos);
-			if (!state.isAir() && !state.hasBlockEntity()) found = true;
+			if (!state.isAir() && !state.hasBlockEntity())
+				found = true;
 		}
 		return found ? SliceStatus.INCOMPLETE : SliceStatus.COMPLETE;
 	}
@@ -427,13 +588,15 @@ public class ScrollActions {
 		player.connection.send(new ClientboundSoundPacket(
 				Holder.direct(sound), SoundSource.PLAYERS,
 				player.getX(), player.getY(), player.getZ(),
-				volume, 1.0f, player.level().getRandom().nextLong()
-		));
+				volume, 1.0f, player.level().getRandom().nextLong()));
 	}
 
 	// --- Inventory helpers ---
 
-	/** Check if all drops can fit in the player's inventory (slots 0-35) without actually adding them. */
+	/**
+	 * Check if all drops can fit in the player's inventory (slots 0-35) without
+	 * actually adding them.
+	 */
 	private static boolean canFitAll(Inventory inventory, List<ItemStack> drops) {
 		// Snapshot inventory slots 0-35 (hotbar + main inventory)
 		int[] counts = new int[36];
@@ -445,7 +608,8 @@ public class ScrollActions {
 		}
 
 		for (ItemStack drop : drops) {
-			if (drop.isEmpty()) continue;
+			if (drop.isEmpty())
+				continue;
 			int remaining = drop.getCount();
 
 			// First pass: merge into existing matching stacks
@@ -470,7 +634,8 @@ public class ScrollActions {
 				}
 			}
 
-			if (remaining > 0) return false;
+			if (remaining > 0)
+				return false;
 		}
 
 		return true;

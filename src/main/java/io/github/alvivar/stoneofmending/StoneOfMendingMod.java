@@ -28,62 +28,74 @@ public class StoneOfMendingMod implements ModInitializer {
 		ModItems.register();
 
 		PayloadTypeRegistry.clientboundPlay().register(
-				SelectionSyncPayload.TYPE, SelectionSyncPayload.STREAM_CODEC
-		);
+				SelectionSyncPayload.TYPE, SelectionSyncPayload.STREAM_CODEC);
 
 		PayloadTypeRegistry.serverboundPlay().register(
-				ScrollActionC2SPayload.TYPE, ScrollActionC2SPayload.STREAM_CODEC
-		);
+				ScrollActionC2SPayload.TYPE, ScrollActionC2SPayload.STREAM_CODEC);
 
 		PayloadTypeRegistry.serverboundPlay().register(
-				ClearSelectionC2SPayload.TYPE, ClearSelectionC2SPayload.STREAM_CODEC
-		);
+				ClearSelectionC2SPayload.TYPE, ClearSelectionC2SPayload.STREAM_CODEC);
 
 		PayloadTypeRegistry.serverboundPlay().register(
-				MiddleClickC2SPayload.TYPE, MiddleClickC2SPayload.STREAM_CODEC
-		);
+				MiddleClickC2SPayload.TYPE, MiddleClickC2SPayload.STREAM_CODEC);
 
 		PayloadTypeRegistry.serverboundPlay().register(
-				SetNormalC2SPayload.TYPE, SetNormalC2SPayload.STREAM_CODEC
-		);
+				SetNormalC2SPayload.TYPE, SetNormalC2SPayload.STREAM_CODEC);
 
 		ServerPlayNetworking.registerGlobalReceiver(ScrollActionC2SPayload.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
-			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING))
+				return;
 
 			Selection sel = SelectionManager.get(player);
-			if (sel == null || !sel.isComplete()) return;
-			if (!player.level().dimension().equals(sel.dimension())) return;
+			if (sel == null || !sel.isComplete())
+				return;
+			if (!player.level().dimension().equals(sel.dimension()))
+				return;
 
 			int dir = payload.direction();
-			boolean shifted = payload.shifted();
-			if (shifted) {
-				if (dir == 1) ScrollActions.interiorFill(player, sel);
-				else if (dir == -1) ScrollActions.interiorCollect(player, sel);
+			if (payload.shifted()) {
+				if (dir == 1)
+					ScrollActions.interiorFill(player, sel);
+				else if (dir == -1)
+					ScrollActions.interiorCollect(player, sel);
+			} else if (payload.ctrl()) {
+				if (dir == -1)
+					ScrollActions.collectBorder(player, sel);
+				else if (dir == 1)
+					ScrollActions.placeBorder(player, sel);
 			} else {
-				if (dir == -1) ScrollActions.collect(player, sel);
-				else if (dir == 1) ScrollActions.place(player, sel);
+				if (dir == -1)
+					ScrollActions.collect(player, sel);
+				else if (dir == 1)
+					ScrollActions.place(player, sel);
 			}
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(MiddleClickC2SPayload.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
-			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING))
+				return;
 
 			Selection sel = SelectionManager.get(player);
-			if (sel == null || !sel.isComplete()) return;
-			if (!player.level().dimension().equals(sel.dimension())) return;
+			if (sel == null || !sel.isComplete())
+				return;
+			if (!player.level().dimension().equals(sel.dimension()))
+				return;
 
 			ScrollActions.replace(player, sel);
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(SetNormalC2SPayload.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
-			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING))
+				return;
 
 			Selection sel = SelectionManager.get(player);
-			if (sel == null || !sel.hasA()) return;
-			if (!player.level().dimension().equals(sel.dimension())) return;
+			if (sel == null || !sel.hasA())
+				return;
+			if (!player.level().dimension().equals(sel.dimension()))
+				return;
 
 			Direction newNormal = normalFromLook(player.getLookAngle());
 			sel.setNormal(newNormal);
@@ -95,10 +107,12 @@ public class StoneOfMendingMod implements ModInitializer {
 
 		ServerPlayNetworking.registerGlobalReceiver(ClearSelectionC2SPayload.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
-			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) return;
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING))
+				return;
 
 			Selection sel = SelectionManager.get(player);
-			if (sel == null || !sel.hasA()) return;
+			if (sel == null || !sel.hasA())
+				return;
 
 			SelectionManager.remove(player);
 			ServerPlayNetworking.send(player, SelectionSyncPayload.from(new Selection()));
@@ -143,19 +157,23 @@ public class StoneOfMendingMod implements ModInitializer {
 		double ax = Math.abs(look.x);
 		double ay = Math.abs(look.y);
 		double az = Math.abs(look.z);
-		if (ax >= ay && ax >= az) return look.x >= 0 ? Direction.EAST : Direction.WEST;
-		if (ay >= az) return look.y >= 0 ? Direction.UP : Direction.DOWN;
+		if (ax >= ay && ax >= az)
+			return look.x >= 0 ? Direction.EAST : Direction.WEST;
+		if (ay >= az)
+			return look.y >= 0 ? Direction.UP : Direction.DOWN;
 		return look.z >= 0 ? Direction.SOUTH : Direction.NORTH;
 	}
 
 	private static int repairTicks;
 
 	private static void tickRepair(MinecraftServer server) {
-		if (++repairTicks < 60) return;
+		if (++repairTicks < 80)
+			return;
 		repairTicks = 0;
 
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING)) continue;
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING))
+				continue;
 
 			ItemStack best = ItemStack.EMPTY;
 			float bestRatio = 0;
@@ -164,7 +182,8 @@ public class StoneOfMendingMod implements ModInitializer {
 			Inventory inv = player.getInventory();
 			for (int i = 0; i < inv.getContainerSize(); i++) {
 				ItemStack stack = inv.getItem(i);
-				if (!stack.isDamaged()) continue;
+				if (!stack.isDamaged())
+					continue;
 
 				int damage = stack.getDamageValue();
 				float ratio = (float) damage / stack.getMaxDamage();
