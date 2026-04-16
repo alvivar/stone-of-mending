@@ -131,7 +131,16 @@ public class StoneOfMendingMod implements ModInitializer {
 				return;
 			}
 
-			// Orthogonal pivot at frontier face
+			// Orthogonal direction with no stroke in progress: reorient whole box, preserve shape
+			if (sel.frontierOffset() == 0) {
+				sel.setNormal(newNormal);
+				SelectionManager.sync(player);
+				ScrollActions.playSound(player, SoundEvents.LODESTONE_COMPASS_LOCK, 0.5f);
+				player.sendOverlayMessage(Component.literal("The stone now faces " + directionName(newNormal) + "."));
+				return;
+			}
+
+			// Orthogonal with stroke in progress: pivot at frontier face
 			SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), oldNormal);
 			int faceCoord = box.frontierBlock(sel.frontierOffset());
 

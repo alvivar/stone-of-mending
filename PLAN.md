@@ -319,6 +319,26 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 
 **Implementation:** Private `tickRepair(MinecraftServer)` method in StoneOfMendingMod, called from the same server tick event. Uses a static tick counter, fires every 80 ticks.
 
+### Phase 20: Ctrl+click reorients at frontier=0, pivots when stroke in progress ✓
+
+**Problem:** Phase 17 made all orthogonal Ctrl+clicks pivot, collapsing the box to a 1-thick seed. This broke a valid pre-Phase-17 flow: select a tall tower, Ctrl+click down to face the bottom, scroll down to consume from below.
+
+**Fix:** Use `frontierOffset` as the discriminator (same rule family as Phase 19 mark B):
+- **frontier = 0** = no stroke in progress, cursor still at box face → **reorient whole box** (preserve A/B, change normal).
+- **frontier ≠ 0** = stroke in progress, cursor displaced → **pivot at frontier face**.
+
+**Full rule set:**
+- A-only → reorient from look.
+- Complete + same → deny.
+- Complete + opposite → flip in place (Phase 17).
+- Complete + orthogonal + frontier = 0 → reorient whole box. Message: "The stone now faces {dir}."
+- Complete + orthogonal + frontier ≠ 0 → pivot at frontier face (Phase 17). Message: "The stone pivots toward {dir}."
+
+**Trade-off:** Pivoting a thick untouched box directly requires scrolling once first. Acceptable because pivot semantically means "turn an in-progress stroke," not "derive a stroke from any fresh box."
+
+**Files modified:**
+- `StoneOfMendingMod.java` — added `frontierOffset == 0` fast-path before pivot math.
+
 ### Phase 19: Mark B commits stroke at frontier ✓
 
 **Problem:** After scrolling or pivoting, right-click (mark B) reshaped from stale A, not from the current working face. Boxes spanned the whole historical stroke. Reshape felt disconnected from where the player actually was.
