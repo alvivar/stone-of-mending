@@ -1,5 +1,6 @@
 package io.github.alvivar.stoneofmending;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -41,10 +42,45 @@ public class StoneOfMendingItem extends Item {
 			return InteractionResult.SUCCESS;
 		}
 
-		sel.markB(context.getClickedPos().immutable());
+		BlockPos clicked = context.getClickedPos().immutable();
+
+		// If stroke is in progress, commit: derive a fresh A from the current frontier face
+		// opposite the clicked B, so reshape tracks where the player actually is.
+		if (sel.isComplete() && sel.frontierOffset() != 0) {
+			SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), sel.normal());
+			int faceCoord = box.frontierBlock(sel.frontierOffset());
+
+			int newAx = box.minX(), newAy = box.minY(), newAz = box.minZ();
+			switch (sel.normal().getAxis()) {
+				case X -> {
+					newAx = faceCoord;
+					newAy = fartherBound(clicked.getY(), box.minY(), box.maxY());
+					newAz = fartherBound(clicked.getZ(), box.minZ(), box.maxZ());
+				}
+				case Y -> {
+					newAx = fartherBound(clicked.getX(), box.minX(), box.maxX());
+					newAy = faceCoord;
+					newAz = fartherBound(clicked.getZ(), box.minZ(), box.maxZ());
+				}
+				case Z -> {
+					newAx = fartherBound(clicked.getX(), box.minX(), box.maxX());
+					newAy = fartherBound(clicked.getY(), box.minY(), box.maxY());
+					newAz = faceCoord;
+				}
+			}
+			sel.setPoints(new BlockPos(newAx, newAy, newAz), clicked);
+			sel.setFrontier(0);
+		} else {
+			sel.markB(clicked);
+		}
+
 		SelectionManager.sync(player);
 		ScrollActions.playSound(player, SoundEvents.ENCHANTMENT_TABLE_USE, 0.5f);
 		player.sendOverlayMessage(Component.literal("The shape is whole."));
 		return InteractionResult.SUCCESS;
+	}
+
+	private static int fartherBound(int clicked, int min, int max) {
+		return Math.abs(clicked - min) >= Math.abs(clicked - max) ? min : max;
 	}
 }

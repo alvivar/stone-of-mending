@@ -319,6 +319,26 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 
 **Implementation:** Private `tickRepair(MinecraftServer)` method in StoneOfMendingMod, called from the same server tick event. Uses a static tick counter, fires every 80 ticks.
 
+### Phase 19: Mark B commits stroke at frontier ✓
+
+**Problem:** After scrolling or pivoting, right-click (mark B) reshaped from stale A, not from the current working face. Boxes spanned the whole historical stroke. Reshape felt disconnected from where the player actually was.
+
+**Rule:** If `isComplete()` AND `frontierOffset != 0`, right-click commits the stroke: derive a fresh A from the current frontier face, then set B to the clicked position. Frontier resets to 0.
+
+**Fresh A derivation:**
+- **Normal axis**: `frontierBlock(frontierOffset)` — the face coordinate.
+- **Non-normal axes**: **farther bound** of the old box from the clicked coordinate. Corner opposite the click, robust against original A/B click order.
+
+**Cases:**
+- A-only → standard `markB`.
+- Complete + frontier=0 → standard `markB` (no stroke in progress, user is just re-marking B).
+- Complete + frontier!=0 → commit at frontier, derive fresh A, set B, reset frontier.
+
+**Why "farther bound" not stale A coords:** Using stale A's non-normal coords silently depended on which corner the user originally clicked. Two equivalent boxes with A/B reversed would collapse differently on reshape. Farther-bound is order-independent.
+
+**Files modified:**
+- `StoneOfMendingItem.java` — pre-`markB` commit logic, `fartherBound()` helper.
+
 ### Phase 18: Mark B resets frontier ✓
 
 **Rule:** Marking either A or B resets `frontierOffset` to 0. A fresh mark = a fresh shape = a fresh cursor.
