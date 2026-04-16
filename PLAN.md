@@ -319,6 +319,66 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 
 **Implementation:** Private `tickRepair(MinecraftServer)` method in StoneOfMendingMod, called from the same server tick event. Uses a static tick counter, fires every 80 ticks.
 
+### Phase 18: Mark B resets frontier ✓
+
+**Rule:** Marking either A or B resets `frontierOffset` to 0. A fresh mark = a fresh shape = a fresh cursor.
+
+**Why:** `frontierOffset` only has meaning relative to the current box. Reshaping B while preserving the old offset makes the frontier slice jump to an unexpected world position (because `faceBlock()` and `frontierBlock()` both depend on the new bounds). Silent stale cursor state attached to new geometry.
+
+**Implementation:** `Selection.markB()` sets `frontierOffset = 0`. `markA` already did this.
+
+### Phase 17: Ctrl+click pivots at frontier face ✓
+
+**Extends Phase 12.** When a full selection exists, Ctrl+click no longer reorients the same box — it pivots at the frontier face, reseeding the tool for continued extrusion. Enables stairs, roads, L-shapes.
+
+**Mental model:** The tool becomes a continuous stroke. Mark a footprint, extrude, pivot, extrude. Each pivot rewrites A/B to a new 1-thick seed box at the front face of the current stroke.
+
+**Pivot rules:**
+
+- **No selection**: no-op ("The stone remembers no mark.").
+- **A-only**: old reorient-from-look behavior — set normal from look, frontier=0. No box change (there is no box yet).
+- **Complete selection** (A+B) + Ctrl+click:
+  - New normal = dominant axis of player's look direction.
+  - **Same direction**: denial — "The stone already faces {dir}."
+  - **Opposite direction** (same axis, opposite sign): flip in place — box preserved, normal flipped, frontier=0. "The stone turns to face {dir}." Lets the player work the same volume from the other side without re-marking.
+  - **Orthogonal direction**: pivot at frontier face.
+
+**Frontier face** = `frontierBlock(frontierOffset)` on the old normal axis. The single consistent pivot point regardless of whether the player last placed or collected.
+
+**Geometry of the pivot** (O = old normal axis, N = new normal axis, T = third axis):
+
+- **T**: preserve old box's full extent `[Tmin, Tmax]`.
+- **O**: collapse to frontier face coord (single block thickness).
+- **N**: collapse to one end of old N extent, based on new normal sign:
+  - `maxN` if new normal is positive (Up, South, East)
+  - `minN` if new normal is negative (Down, North, West)
+
+Then: `normal = newNormal`, `frontier = 0`.
+
+**Example:** `3x3x5` box, normal=Z, scrolled +2. Ctrl+click looking Up.
+- O=Z → collapse to `frontierBlock(2)`.
+- N=Y, Up is positive → collapse to `maxY`.
+- T=X → preserve `[minX, maxX]`.
+- Result: 3x1x1 box, normal=Up, frontier=0. Scroll up places a 3x1 slab at `maxY+1`.
+
+**Intentional behaviors:**
+- Thick volumes "hug" the edge matching the turn direction (not center).
+- Pivoting when frontier has moved beyond the original box seeds the new stroke outside the original selection — this is the desired stroke behavior.
+- No player position logic — geometry is deterministic from normals and bounds.
+- No undo — each pivot rewrites A and B permanently. Re-mark to start a new stroke.
+
+**Implementation approach:** Bounds-math. Extract old min/max on each world axis, identify O/N/T by axis, rewrite bounds per rule above, construct new A and B from the resulting mins/maxes.
+
+**Files modified:**
+- `StoneOfMendingMod.java` — handler reworked: detect complete selection, compute pivot from bounds, rewrite A/B.
+- `Selection.java` — `setPoints(BlockPos, BlockPos)` setter.
+- Message: "The stone pivots toward {dir}." for pivot case; existing "now faces" for A-only fallback.
+
+**Not included:**
+- Undo / box history — each pivot rewrites permanently.
+- Opposite-direction flip — no-op for now.
+- Non-orthogonal pivots — `normalFromLook` already collapses to axes.
+
 ### Phase 16: Ctrl+scroll — Border-only slices ✓
 
 Ctrl+scroll down/up collects/places only the perimeter ring of the current slice, not the full area.

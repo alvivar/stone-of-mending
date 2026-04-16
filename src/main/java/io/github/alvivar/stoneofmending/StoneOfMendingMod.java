@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -98,11 +99,66 @@ public class StoneOfMendingMod implements ModInitializer {
 				return;
 
 			Direction newNormal = normalFromLook(player.getLookAngle());
+
+			// A-only: just reorient (no box yet to pivot)
+			if (!sel.isComplete()) {
+				if (newNormal == sel.normal()) {
+					ScrollActions.playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
+					player.sendOverlayMessage(Component.literal("The stone already faces " + directionName(newNormal) + "."));
+					return;
+				}
+				sel.setNormal(newNormal);
+				sel.setFrontier(0);
+				SelectionManager.sync(player);
+				ScrollActions.playSound(player, SoundEvents.LODESTONE_COMPASS_LOCK, 0.5f);
+				player.sendOverlayMessage(Component.literal("The stone now faces " + directionName(newNormal) + "."));
+				return;
+			}
+
+			Direction oldNormal = sel.normal();
+			if (newNormal == oldNormal) {
+				ScrollActions.playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
+				player.sendOverlayMessage(Component.literal("The stone already faces " + directionName(newNormal) + "."));
+				return;
+			}
+			if (newNormal.getAxis() == oldNormal.getAxis()) {
+				// Opposite direction on same axis: flip in place (box preserved, normal flipped)
+				sel.setNormal(newNormal);
+				sel.setFrontier(0);
+				SelectionManager.sync(player);
+				ScrollActions.playSound(player, SoundEvents.LODESTONE_COMPASS_LOCK, 0.5f);
+				player.sendOverlayMessage(Component.literal("The stone turns to face " + directionName(newNormal) + "."));
+				return;
+			}
+
+			// Orthogonal pivot at frontier face
+			SelectionBox box = SelectionBox.from(sel.pointA(), sel.pointB(), oldNormal);
+			int faceCoord = box.frontierBlock(sel.frontierOffset());
+
+			int newAx = box.minX(), newAy = box.minY(), newAz = box.minZ();
+			int newBx = box.maxX(), newBy = box.maxY(), newBz = box.maxZ();
+
+			// Collapse old normal axis to frontier face
+			switch (oldNormal.getAxis()) {
+				case X -> { newAx = faceCoord; newBx = faceCoord; }
+				case Y -> { newAy = faceCoord; newBy = faceCoord; }
+				case Z -> { newAz = faceCoord; newBz = faceCoord; }
+			}
+
+			// Collapse new normal axis to min/max based on sign
+			boolean positive = newNormal.getAxisDirection().getStep() > 0;
+			switch (newNormal.getAxis()) {
+				case X -> { int v = positive ? box.maxX() : box.minX(); newAx = v; newBx = v; }
+				case Y -> { int v = positive ? box.maxY() : box.minY(); newAy = v; newBy = v; }
+				case Z -> { int v = positive ? box.maxZ() : box.minZ(); newAz = v; newBz = v; }
+			}
+
+			sel.setPoints(new BlockPos(newAx, newAy, newAz), new BlockPos(newBx, newBy, newBz));
 			sel.setNormal(newNormal);
 			sel.setFrontier(0);
 			SelectionManager.sync(player);
 			ScrollActions.playSound(player, SoundEvents.LODESTONE_COMPASS_LOCK, 0.5f);
-			player.sendOverlayMessage(Component.literal("The stone now faces " + directionName(newNormal) + "."));
+			player.sendOverlayMessage(Component.literal("The stone pivots toward " + directionName(newNormal) + "."));
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(ClearSelectionC2SPayload.TYPE, (payload, context) -> {

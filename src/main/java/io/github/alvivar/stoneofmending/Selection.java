@@ -24,6 +24,7 @@ public class Selection {
 
 	public void markB(BlockPos pos) {
 		this.pointB = pos;
+		this.frontierOffset = 0;
 	}
 
 	public boolean hasA() {
@@ -56,6 +57,11 @@ public class Selection {
 
 	public void setNormal(Direction direction) {
 		this.normal = direction;
+	}
+
+	public void setPoints(BlockPos a, BlockPos b) {
+		this.pointA = a;
+		this.pointB = b;
 	}
 
 	public void setFrontier(int offset) {
