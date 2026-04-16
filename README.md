@@ -10,6 +10,7 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 - **Smart range actions** with Shift+scroll — scans the active range for the next incomplete or collectible slice
 - **Replace all blocks** in the selection with offhand material (middle click)
 - **Border-only slices** with Ctrl+scroll — collect or place just the perimeter ring, great for hollow structures
+- **Reshape mid-stroke** — turn, flip, or pivot the selection with Ctrl+click; right-click commits at the working face. Build stairs, roads, L-shapes, or work a tower from below without re-marking
 - **Frontier cursor** extends infinitely beyond the original box
 - **Visual rendering** — dim cyan box for the selection, bright slice for the frontier
 - **Sound feedback** — distinct audio cues for marking, collecting, placing, replacing, and errors
@@ -31,7 +32,7 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 | Input               | Action                                                                     |
 | ------------------- | -------------------------------------------------------------------------- |
 | Left-click block    | Mark point A (locks face normal / slicing axis)                            |
-| Right-click block   | Mark point B (completes the 3D box)                                        |
+| Right-click block   | Mark point B — or commit the stroke at the frontier and set a new B        |
 | Left-click air      | Clear selection                                                            |
 | Scroll down         | Collect the frontier slice (mining drops), cursor moves inward             |
 | Scroll up           | Place offhand material at the next outward slice, cursor moves outward     |
@@ -39,7 +40,7 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 | Ctrl + Scroll up    | Place border only — perimeter ring from offhand material                   |
 | Shift + Scroll down | Smart collect: finds first collectible slice front→far across active range |
 | Shift + Scroll up   | Smart fill: finds first incomplete slice far→front across active range     |
-| Ctrl + left-click   | Change slicing direction to where you're looking, reset frontier           |
+| Ctrl + left-click   | Turn the stone — reorient, flip, or pivot based on stroke state            |
 | Middle click        | Replace all eligible blocks in the box with offhand material               |
 
 ## How It Works
@@ -48,7 +49,18 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 
 Point A defines a face and its normal direction — this becomes the slicing axis. Point B completes the opposite corner of the 3D box. The box renders as a dim cyan outline. The selection clears automatically when you switch to a different item.
 
-You can change the slicing direction at any time with **Ctrl+left-click** — it snaps to the dominant axis of where you're looking and resets the frontier to 0. No need to re-mark your points.
+### Turning and Reshaping
+
+Both **Ctrl+left-click** and **right-click** adapt to where you are in a stroke. The rule is simple: `frontier=0` preserves the shape, `frontier≠0` commits at the working face.
+
+**Ctrl+left-click** turns the stone toward the dominant axis of your look:
+
+- Same direction — denial, nothing changes.
+- Opposite direction — **flip** in place. Same box, worked from the other face.
+- Orthogonal + no stroke — **reorient** the whole box, shape preserved.
+- Orthogonal + stroke in progress — **pivot** at the current frontier face. Collapses to a one-thick seed you can extend in the new direction. This is how you build stairs and L-shapes.
+
+**Right-click** commits when a stroke is in progress: it derives a fresh A from the frontier face opposite the click and sets B where you clicked. Reshape tracks where you actually are, not where you first marked. With no stroke, it just marks B normally.
 
 ### Frontier
 
