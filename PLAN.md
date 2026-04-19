@@ -319,15 +319,59 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 
 **Implementation:** Private `tickRepair(MinecraftServer)` method in StoneOfMendingMod, called from the same server tick event. Uses a static tick counter, fires every 80 ticks.
 
+### Phase 21: Passive top-up (arrows + torches) ✓
+
+While the Stone of Mending is held in main hand, it passively tops up low-count
+expedition basics. Maintenance semantics, not farming. Parallel with repair.
+
+**Rules:**
+
+- **Items**: arrows (cap 24) and torches (cap 16) only.
+- **Main hand only** (same rule as repair).
+- **Selector**: whichever supported item has the lowest `count / cap` ratio.
+  Ties go to arrows (deterministic).
+- **Stops entirely when both items are at or above cap** — no trickle above
+  stocked.
+- **Cadence**: one item every 1000 ticks (50 seconds, one Minecraft hour).
+- **Timer persistence**: per-player counter. Pauses when the stone is not in
+  main hand, resumes from last value when it is. Different from repair's
+  global counter (80 ticks, cheap to miss; 1000 ticks would feel bad to
+  reset).
+- **Inventory-full behavior**: `inv.add()` returns false → silently skip. Timer
+  still resets.
+- **Silent** — no sound, no overlay.
+
+**Implementation:** Per-player `Map<UUID, Integer> topupTicks` in
+`StoneOfMendingMod`. `tickTopup(server)` iterates online players, increments
+per-UUID counter only for players holding the stone in main hand (natural
+pause when unheld). At 1000, call `produceTopup(player)` and reset counter.
+
+`produceTopup` counts arrows + torches via `Inventory.countItem`, computes
+ratios, picks target, `inv.add(new ItemStack(target))`. Timer resets
+unconditionally — even when both caps hit or inventory full. Alternative
+("stay armed, fire instantly on next dip below cap") rejected as too
+reactive; maintenance tempo wants a full cadence before each produce.
+
+Named constants: `TOPUP_TICKS`, `ARROW_CAP`, `TORCH_CAP`.
+
+Cleanup on disconnect: `topupTicks.remove(uuid)`.
+
+**Files modified:**
+
+- `StoneOfMendingMod.java` — `topupTicks` map, `tickTopup`, `produceTopup`,
+  disconnect cleanup, wired into existing tick event.
+
 ### Phase 20: Ctrl+click reorients at frontier=0, pivots when stroke in progress ✓
 
 **Problem:** Phase 17 made all orthogonal Ctrl+clicks pivot, collapsing the box to a 1-thick seed. This broke a valid pre-Phase-17 flow: select a tall tower, Ctrl+click down to face the bottom, scroll down to consume from below.
 
 **Fix:** Use `frontierOffset` as the discriminator (same rule family as Phase 19 mark B):
+
 - **frontier = 0** = no stroke in progress, cursor still at box face → **reorient whole box** (preserve A/B, change normal).
 - **frontier ≠ 0** = stroke in progress, cursor displaced → **pivot at frontier face**.
 
 **Full rule set:**
+
 - A-only → reorient from look.
 - Complete + same → deny.
 - Complete + opposite → flip in place (Phase 17).
@@ -337,6 +381,7 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 **Trade-off:** Pivoting a thick untouched box directly requires scrolling once first. Acceptable because pivot semantically means "turn an in-progress stroke," not "derive a stroke from any fresh box."
 
 **Files modified:**
+
 - `StoneOfMendingMod.java` — added `frontierOffset == 0` fast-path before pivot math.
 
 ### Phase 19: Mark B commits stroke at frontier ✓
@@ -346,10 +391,12 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 **Rule:** If `isComplete()` AND `frontierOffset != 0`, right-click commits the stroke: derive a fresh A from the current frontier face, then set B to the clicked position. Frontier resets to 0.
 
 **Fresh A derivation:**
+
 - **Normal axis**: `frontierBlock(frontierOffset)` — the face coordinate.
 - **Non-normal axes**: **farther bound** of the old box from the clicked coordinate. Corner opposite the click, robust against original A/B click order.
 
 **Cases:**
+
 - A-only → standard `markB`.
 - Complete + frontier=0 → standard `markB` (no stroke in progress, user is just re-marking B).
 - Complete + frontier!=0 → commit at frontier, derive fresh A, set B, reset frontier.
@@ -357,6 +404,7 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 **Why "farther bound" not stale A coords:** Using stale A's non-normal coords silently depended on which corner the user originally clicked. Two equivalent boxes with A/B reversed would collapse differently on reshape. Farther-bound is order-independent.
 
 **Files modified:**
+
 - `StoneOfMendingItem.java` — pre-`markB` commit logic, `fartherBound()` helper.
 
 ### Phase 18: Mark B resets frontier ✓
@@ -396,12 +444,14 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 Then: `normal = newNormal`, `frontier = 0`.
 
 **Example:** `3x3x5` box, normal=Z, scrolled +2. Ctrl+click looking Up.
+
 - O=Z → collapse to `frontierBlock(2)`.
 - N=Y, Up is positive → collapse to `maxY`.
 - T=X → preserve `[minX, maxX]`.
 - Result: 3x1x1 box, normal=Up, frontier=0. Scroll up places a 3x1 slab at `maxY+1`.
 
 **Intentional behaviors:**
+
 - Thick volumes "hug" the edge matching the turn direction (not center).
 - Pivoting when frontier has moved beyond the original box seeds the new stroke outside the original selection — this is the desired stroke behavior.
 - No player position logic — geometry is deterministic from normals and bounds.
@@ -410,11 +460,13 @@ Then: `normal = newNormal`, `frontier = 0`.
 **Implementation approach:** Bounds-math. Extract old min/max on each world axis, identify O/N/T by axis, rewrite bounds per rule above, construct new A and B from the resulting mins/maxes.
 
 **Files modified:**
+
 - `StoneOfMendingMod.java` — handler reworked: detect complete selection, compute pivot from bounds, rewrite A/B.
 - `Selection.java` — `setPoints(BlockPos, BlockPos)` setter.
 - Message: "The stone pivots toward {dir}." for pivot case; existing "now faces" for A-only fallback.
 
 **Not included:**
+
 - Undo / box history — each pivot rewrites permanently.
 - Opposite-direction flip — no-op for now.
 - Non-orthogonal pivots — `normalFromLook` already collapses to axes.

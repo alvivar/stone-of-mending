@@ -15,9 +15,14 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class StoneOfMendingMod implements ModInitializer {
 
@@ -104,7 +109,8 @@ public class StoneOfMendingMod implements ModInitializer {
 			if (!sel.isComplete()) {
 				if (newNormal == sel.normal()) {
 					ScrollActions.playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
-					player.sendOverlayMessage(Component.literal("The stone already faces " + directionName(newNormal) + "."));
+					player.sendOverlayMessage(
+							Component.literal("The stone already faces " + directionName(newNormal) + "."));
 					return;
 				}
 				sel.setNormal(newNormal);
@@ -118,20 +124,24 @@ public class StoneOfMendingMod implements ModInitializer {
 			Direction oldNormal = sel.normal();
 			if (newNormal == oldNormal) {
 				ScrollActions.playSound(player, SoundEvents.AMETHYST_BLOCK_HIT, 0.3f);
-				player.sendOverlayMessage(Component.literal("The stone already faces " + directionName(newNormal) + "."));
+				player.sendOverlayMessage(
+						Component.literal("The stone already faces " + directionName(newNormal) + "."));
 				return;
 			}
 			if (newNormal.getAxis() == oldNormal.getAxis()) {
-				// Opposite direction on same axis: flip in place (box preserved, normal flipped)
+				// Opposite direction on same axis: flip in place (box preserved, normal
+				// flipped)
 				sel.setNormal(newNormal);
 				sel.setFrontier(0);
 				SelectionManager.sync(player);
 				ScrollActions.playSound(player, SoundEvents.LODESTONE_COMPASS_LOCK, 0.5f);
-				player.sendOverlayMessage(Component.literal("The stone turns to face " + directionName(newNormal) + "."));
+				player.sendOverlayMessage(
+						Component.literal("The stone turns to face " + directionName(newNormal) + "."));
 				return;
 			}
 
-			// Orthogonal direction with no stroke in progress: reorient whole box, preserve shape
+			// Orthogonal direction with no stroke in progress: reorient whole box, preserve
+			// shape
 			if (sel.frontierOffset() == 0) {
 				sel.setNormal(newNormal);
 				SelectionManager.sync(player);
@@ -149,17 +159,38 @@ public class StoneOfMendingMod implements ModInitializer {
 
 			// Collapse old normal axis to frontier face
 			switch (oldNormal.getAxis()) {
-				case X -> { newAx = faceCoord; newBx = faceCoord; }
-				case Y -> { newAy = faceCoord; newBy = faceCoord; }
-				case Z -> { newAz = faceCoord; newBz = faceCoord; }
+				case X -> {
+					newAx = faceCoord;
+					newBx = faceCoord;
+				}
+				case Y -> {
+					newAy = faceCoord;
+					newBy = faceCoord;
+				}
+				case Z -> {
+					newAz = faceCoord;
+					newBz = faceCoord;
+				}
 			}
 
 			// Collapse new normal axis to min/max based on sign
 			boolean positive = newNormal.getAxisDirection().getStep() > 0;
 			switch (newNormal.getAxis()) {
-				case X -> { int v = positive ? box.maxX() : box.minX(); newAx = v; newBx = v; }
-				case Y -> { int v = positive ? box.maxY() : box.minY(); newAy = v; newBy = v; }
-				case Z -> { int v = positive ? box.maxZ() : box.minZ(); newAz = v; newBz = v; }
+				case X -> {
+					int v = positive ? box.maxX() : box.minX();
+					newAx = v;
+					newBx = v;
+				}
+				case Y -> {
+					int v = positive ? box.maxY() : box.minY();
+					newAy = v;
+					newBy = v;
+				}
+				case Z -> {
+					int v = positive ? box.maxZ() : box.minZ();
+					newAz = v;
+					newBz = v;
+				}
 			}
 
 			sel.setPoints(new BlockPos(newAx, newAy, newAz), new BlockPos(newBx, newBy, newBz));
@@ -207,12 +238,15 @@ public class StoneOfMendingMod implements ModInitializer {
 		});
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-			SelectionManager.remove(handler.getPlayer());
+			ServerPlayer p = handler.getPlayer();
+			SelectionManager.remove(p);
+			topupTicks.remove(p.getUUID());
 		});
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			SelectionManager.tick(server);
 			tickRepair(server);
+			tickTopup(server);
 		});
 
 		LOGGER.info("Stone of Mending loaded");
@@ -227,6 +261,45 @@ public class StoneOfMendingMod implements ModInitializer {
 		if (ay >= az)
 			return look.y >= 0 ? Direction.UP : Direction.DOWN;
 		return look.z >= 0 ? Direction.SOUTH : Direction.NORTH;
+	}
+
+	// Top-up: arrows + torches trickle while the stone is held, to keep
+	// expedition basics from running dry. Per-player counter pauses when the
+	// stone isn't in main hand and resumes from its last value — a 50-second
+	// cadence would feel bad to reset on every hotbar flick.
+	private static final int TOPUP_TICKS = 1000;
+	private static final int ARROW_CAP = 24;
+	private static final int TORCH_CAP = 16;
+	private static final Map<UUID, Integer> topupTicks = new HashMap<>();
+
+	private static void tickTopup(MinecraftServer server) {
+		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+			if (!player.getMainHandItem().is(ModItems.STONE_OF_MENDING))
+				continue;
+
+			UUID id = player.getUUID();
+			int t = topupTicks.getOrDefault(id, 0) + 1;
+			if (t >= TOPUP_TICKS) {
+				produceTopup(player);
+				t = 0;
+			}
+			topupTicks.put(id, t);
+		}
+	}
+
+	private static void produceTopup(ServerPlayer player) {
+		Inventory inv = player.getInventory();
+		int arrows = inv.countItem(Items.ARROW);
+		int torches = inv.countItem(Items.TORCH);
+
+		float arrowRatio = arrows / (float) ARROW_CAP;
+		float torchRatio = torches / (float) TORCH_CAP;
+		if (arrowRatio >= 1f && torchRatio >= 1f)
+			return;
+
+		// Tie (including empty-for-both) goes to arrows. Deterministic.
+		boolean produceArrow = arrowRatio <= torchRatio;
+		inv.add(new ItemStack(produceArrow ? Items.ARROW : Items.TORCH));
 	}
 
 	private static int repairTicks;
