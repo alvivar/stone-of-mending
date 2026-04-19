@@ -319,6 +319,46 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 
 **Implementation:** Private `tickRepair(MinecraftServer)` method in StoneOfMendingMod, called from the same server tick event. Uses a static tick counter, fires every 80 ticks.
 
+### Phase 22: Hunger cost per block handled ✓
+
+The stone is a better mining method, not a free one. Every block handled by
+the stone costs the same hunger exhaustion as mining by hand in vanilla.
+
+**Rule:** `0.01` exhaustion per successful block (vanilla swim-exhaustion
+reference). Applied flat to all block operations: collect, place, replace,
+border variants, interior variants. Placement costs the same as collection —
+symmetric (diverges from vanilla where placement is free, but conceptually
+cleaner for a reshape-the-world tool).
+
+**Why swim-equivalent**: vanilla mining (0.005) is invisible alone — 800
+blocks per hunger tick. Jump (0.05) registers fast but feels heavy for a
+magical tool. Swim (0.01 = 400 blocks per hunger tick) is the gentle middle
+— measurable on large ops, invisible on small ones. Mental model: each
+block is a short swim through the material.
+
+**Only successful blocks are charged.** Failed attempts, already-matching
+replace targets, blocked slices, and "nothing to do" operations cost nothing.
+The count variable already tracked in each operation (for overlay messages) is
+reused as the charge basis.
+
+**Creative mode auto-skips** — `ServerPlayer.causeFoodExhaustion` checks
+`abilities.invulnerable` and no-ops in creative. No manual guard needed.
+
+**Peaceful mode**: hunger regens continuously, so the cost is effectively
+nullified. Accepted asymmetry rather than patching with health damage.
+
+**Passive repair and top-up stay free** — they aren't "work."
+
+**Magnitude**: 2× vanilla mining, matching swim exhaustion. A 400-block
+operation is the first visible hunger tick. A 1000-block operation costs
+~2.5 hunger points. Small ops stay subtle; big builds register without
+punishing.
+
+**Files modified:**
+- `ScrollActions.java` — `EXHAUSTION_PER_BLOCK` constant, `chargeExhaustion`
+  helper, one call per operation end (7 total) using the existing count
+  variable.
+
 ### Phase 21: Passive top-up (arrows + torches) ✓
 
 While the Stone of Mending is held in main hand, it passively tops up low-count

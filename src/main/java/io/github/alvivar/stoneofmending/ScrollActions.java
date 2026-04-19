@@ -67,6 +67,8 @@ public class ScrollActions {
 		}
 		SelectionManager.sync(player);
 
+		chargeExhaustion(player, collected);
+
 		if (inventoryFull) {
 			playSound(player, SoundEvents.CONDUIT_DEACTIVATE, 0.5f);
 			if (collected > 0) {
@@ -134,6 +136,8 @@ public class ScrollActions {
 		if (offhand.isEmpty()) {
 			refillOffhand(player, template);
 		}
+
+		chargeExhaustion(player, placed);
 
 		if (placed > 0) {
 			playSound(player, SoundEvents.LODESTONE_PLACE, 0.4f);
@@ -210,6 +214,8 @@ public class ScrollActions {
 			refillOffhand(player, template);
 		}
 
+		chargeExhaustion(player, replaced);
+
 		if (inventoryFull) {
 			playSound(player, SoundEvents.CONDUIT_DEACTIVATE, 0.5f);
 			if (replaced > 0) {
@@ -270,6 +276,8 @@ public class ScrollActions {
 			sel.setFrontier(sel.frontierOffset() + 1);
 		}
 		SelectionManager.sync(player);
+
+		chargeExhaustion(player, collected);
 
 		if (inventoryFull) {
 			playSound(player, SoundEvents.CONDUIT_DEACTIVATE, 0.5f);
@@ -351,6 +359,8 @@ public class ScrollActions {
 			refillOffhand(player, template);
 		}
 
+		chargeExhaustion(player, placed);
+
 		if (placed > 0) {
 			playSound(player, SoundEvents.LODESTONE_PLACE, 0.4f);
 			player.sendOverlayMessage(Component.literal("The stone laid " + placed + " blocks."));
@@ -408,6 +418,8 @@ public class ScrollActions {
 		if (offhand.isEmpty()) {
 			refillOffhand(player, template);
 		}
+
+		chargeExhaustion(player, placed);
 
 		if (placed > 0) {
 			int current = sel.frontierOffset();
@@ -475,6 +487,8 @@ public class ScrollActions {
 				SelectionManager.sync(player);
 			}
 		}
+
+		chargeExhaustion(player, collected);
 
 		if (inventoryFull) {
 			playSound(player, SoundEvents.CONDUIT_DEACTIVATE, 0.5f);
@@ -580,6 +594,20 @@ public class ScrollActions {
 				found = true;
 		}
 		return found ? SliceStatus.INCOMPLETE : SliceStatus.COMPLETE;
+	}
+
+	// --- Exhaustion helper ---
+
+	// Flat per-block work cost, matched to vanilla swim exhaustion (0.01).
+	// Between literal mining parity (0.005, invisible alone) and jump cost
+	// (0.05, registers fast): 0.01 feels like each block is a short swim —
+	// gentle but measurable on large ops. Symmetric across collect/place/replace.
+	// `causeFoodExhaustion` is a no-op in creative (vanilla checks invulnerable).
+	private static final float EXHAUSTION_PER_BLOCK = 0.01f;
+
+	static void chargeExhaustion(ServerPlayer player, int blocks) {
+		if (blocks > 0)
+			player.causeFoodExhaustion(blocks * EXHAUSTION_PER_BLOCK);
 	}
 
 	// --- Sound helper ---
