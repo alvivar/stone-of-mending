@@ -598,12 +598,13 @@ public class ScrollActions {
 
 	// --- Exhaustion helper ---
 
-	// Flat per-block work cost, matched to vanilla swim exhaustion (0.01).
-	// Between literal mining parity (0.005, invisible alone) and jump cost
-	// (0.05, registers fast): 0.01 feels like each block is a short swim —
-	// gentle but measurable on large ops. Symmetric across collect/place/replace.
+	// Flat per-block work cost, tuned to "a stack per drumstick-half": 64 blocks
+	// = 4 exhaustion = 1 hunger point, so 0.0625 per block. Sits between jump
+	// (0.05) and sprint (0.1) — effortful but not punishing. Mental model is
+	// Minecraft-native: one stack of blocks costs a drumstick half.
+	// Symmetric across collect/place/replace.
 	// `causeFoodExhaustion` is a no-op in creative (vanilla checks invulnerable).
-	private static final float EXHAUSTION_PER_BLOCK = 0.01f;
+	private static final float EXHAUSTION_PER_BLOCK = 0.0625f;
 
 	static void chargeExhaustion(ServerPlayer player, int blocks) {
 		if (blocks > 0)
