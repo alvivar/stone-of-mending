@@ -268,10 +268,11 @@ public class StoneOfMendingMod implements ModInitializer {
 	}
 
 	// Top-up: arrows + torches trickle while the stone is held, to keep
-	// expedition basics from running dry. Per-player counter pauses when the
-	// stone isn't in main hand and resumes from its last value — a 50-second
-	// cadence would feel bad to reset on every hotbar flick.
-	private static final int TOPUP_TICKS = 1000;
+	// expedition basics from running dry. One stack per real-time hour: 1125
+	// ticks × 64 = 72000 ticks = 3600s. Per-player counter pauses when the stone
+	// isn't in main hand and resumes from its last value — a minute-scale cadence
+	// would feel bad to reset on every hotbar flick.
+	private static final int TOPUP_TICKS = 1125;
 	private static final int ARROW_CAP = 64;
 	private static final int TORCH_CAP = 64;
 	private static final Map<UUID, Integer> topupTicks = new HashMap<>();

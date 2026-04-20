@@ -21,7 +21,7 @@ expedition basics. Maintenance semantics, not farming.
 - **Per-item caps**: arrows 64, torches 64 (one stack each)
 - **Stops entirely when both items are at or above cap** — no trickle above
   stocked
-- **Cadence**: one item every 1000 ticks (50 seconds, one Minecraft hour)
+- **Cadence**: one item every 1125 ticks (56.25 seconds) — one stack per real-time hour
 - **Timer persistence**: the top-up counter pauses when the stone is not in
   main hand, resumes from where it left off when it is. Switching to another
   item mid-cycle doesn't reset progress. Same pattern as the existing repair

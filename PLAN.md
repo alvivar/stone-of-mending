@@ -412,7 +412,7 @@ expedition basics. Maintenance semantics, not farming. Parallel with repair.
   Ties go to arrows (deterministic).
 - **Stops entirely when both items are at or above cap** — no trickle above
   stocked.
-- **Cadence**: one item every 1000 ticks (50 seconds, one Minecraft hour).
+- **Cadence**: one item every 1125 ticks (56.25 seconds) — tuned so a full stack of 64 takes exactly one real-time hour.
 - **Timer persistence**: per-player counter. Pauses when the stone is not in
   main hand, resumes from last value when it is. Different from repair's
   global counter (80 ticks, cheap to miss; 1000 ticks would feel bad to
