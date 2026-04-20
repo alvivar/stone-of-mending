@@ -406,7 +406,7 @@ expedition basics. Maintenance semantics, not farming. Parallel with repair.
 
 **Rules:**
 
-- **Items**: arrows (cap 24) and torches (cap 16) only.
+- **Items**: arrows (cap 64) and torches (cap 64) only — one stack each.
 - **Main hand only** (same rule as repair).
 - **Selector**: whichever supported item has the lowest `count / cap` ratio.
   Ties go to arrows (deterministic).

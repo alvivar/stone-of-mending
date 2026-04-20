@@ -272,8 +272,8 @@ public class StoneOfMendingMod implements ModInitializer {
 	// stone isn't in main hand and resumes from its last value — a 50-second
 	// cadence would feel bad to reset on every hotbar flick.
 	private static final int TOPUP_TICKS = 1000;
-	private static final int ARROW_CAP = 24;
-	private static final int TORCH_CAP = 16;
+	private static final int ARROW_CAP = 64;
+	private static final int TORCH_CAP = 64;
 	private static final Map<UUID, Integer> topupTicks = new HashMap<>();
 
 	private static void tickTopup(MinecraftServer server) {

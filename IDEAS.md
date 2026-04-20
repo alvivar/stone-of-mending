@@ -18,7 +18,7 @@ expedition basics. Maintenance semantics, not farming.
 - **Selector**: whichever supported item has the lowest `count / cap` ratio
   (absolute count is the wrong comparison — 4 torches vs 10 arrows is
   meaningless)
-- **Per-item caps**: arrows 24, torches 16
+- **Per-item caps**: arrows 64, torches 64 (one stack each)
 - **Stops entirely when both items are at or above cap** — no trickle above
   stocked
 - **Cadence**: one item every 1000 ticks (50 seconds, one Minecraft hour)
