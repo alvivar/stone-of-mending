@@ -8,6 +8,10 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -335,7 +339,58 @@ public class StoneOfMendingMod implements ModInitializer {
 			if (!best.isEmpty()) {
 				int repair = Math.max(1, best.getMaxDamage() / 100);
 				best.setDamageValue(Math.max(0, best.getDamageValue() - repair));
+			} else {
+				mendNearbyStone(player);
 			}
+		}
+	}
+
+	// When everything is mended, the stone extends its attention outward and
+	// mends the closest broken stone — cobblestone and cobbled deepslate — into
+	// their whole forms. One block per 4s pulse. Experimental: blurs the
+	// inventory/world line the other passives respect, but the name demands it.
+	private static final int STONE_MEND_RADIUS = 4;
+
+	private static void mendNearbyStone(ServerPlayer player) {
+		ServerLevel level = (ServerLevel) player.level();
+		double px = player.getX();
+		double py = player.getY();
+		double pz = player.getZ();
+		BlockPos origin = player.blockPosition();
+
+		BlockPos bestPos = null;
+		Block bestResult = null;
+		double bestDistSq = Double.MAX_VALUE;
+
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		for (int dx = -STONE_MEND_RADIUS; dx <= STONE_MEND_RADIUS; dx++) {
+			for (int dy = -STONE_MEND_RADIUS; dy <= STONE_MEND_RADIUS; dy++) {
+				for (int dz = -STONE_MEND_RADIUS; dz <= STONE_MEND_RADIUS; dz++) {
+					cursor.set(origin.getX() + dx, origin.getY() + dy, origin.getZ() + dz);
+					if (!level.isLoaded(cursor))
+						continue;
+					BlockState state = level.getBlockState(cursor);
+					Block result;
+					if (state.is(Blocks.COBBLESTONE))
+						result = Blocks.STONE;
+					else if (state.is(Blocks.COBBLED_DEEPSLATE))
+						result = Blocks.DEEPSLATE;
+					else
+						continue;
+
+					double distSq = cursor.distToCenterSqr(px, py, pz);
+					if (distSq < bestDistSq) {
+						bestDistSq = distSq;
+						bestPos = cursor.immutable();
+						bestResult = result;
+					}
+				}
+			}
+		}
+
+		if (bestPos != null) {
+			level.setBlock(bestPos, bestResult.defaultBlockState(),
+					Block.UPDATE_NEIGHBORS | Block.UPDATE_CLIENTS);
 		}
 	}
 

@@ -319,6 +319,44 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 
 **Implementation:** Private `tickRepair(MinecraftServer)` method in StoneOfMendingMod, called from the same server tick event. Uses a static tick counter, fires every 80 ticks.
 
+### Phase 23: Passive stone-mending aura (experimental) ✓
+
+When the repair pulse has nothing to do (all items mended), the stone extends
+its attention outward and mends the closest broken stone — cobblestone and
+cobbled deepslate — into their whole forms. One block per 4-second pulse.
+
+**Why "experimental"**: this is the only passive that mutates the world around
+the player rather than their inventory. It blurs the trust line the other
+passives respect ("the stone changes only what you ask it to"). Accepted
+because the etymology is too on-name to pass up: the item literally calls
+itself the Stone of Mending, and cobblestone → stone is the most literal
+"broken → whole" transformation in the game.
+
+**Rule**:
+
+- Runs inside `tickRepair` as a fallback when `best.isEmpty()` (nothing to
+  repair in the player's inventory).
+- Scans a 9×9×9 cube (player position ±4) for `minecraft:cobblestone` or
+  `minecraft:cobbled_deepslate`.
+- Picks the closest one by squared distance from block center to player.
+- Replaces it with the whole form (stone or deepslate) using standard
+  neighbor+client updates.
+- Silent — no sound, no particle, no overlay. Players discover it by watching.
+- Not gated by game mode: works in creative too (consistent with other
+  passives).
+- Unloaded chunks skipped — no force-loading.
+
+**Scope**:
+
+- Cobblestone → stone
+- Cobbled deepslate → deepslate
+- Nothing else (mossy cobble, blackstone, etc. have no clean mend target)
+
+**Files modified**:
+
+- `StoneOfMendingMod.java` — added `mendNearbyStone(ServerPlayer)` helper and
+  branch in `tickRepair` when no damaged items found.
+
 ### Phase 22: Hunger cost per block handled ✓
 
 The stone is a better mining method, not a free one. Every block handled by
