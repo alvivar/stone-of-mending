@@ -17,7 +17,7 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 - **Offhand auto-refill** from inventory
 - **Passive repair** — while held, slowly mends the most damaged item in your inventory (~7 min full repair)
 - **Passive top-up** — while held, trickles arrows and torches into your inventory (one stack per hour, caps at 64 each)
-- **Stone-mending aura** _(experimental)_ — when nothing needs repair, the stone mends nearby cobblestone and cobbled deepslate back into whole stone. One block every 4 seconds within a 9×9×9 area
+- **Stone-mending aura** _(experimental)_ — when nothing needs repair, the stone turns nearby cobblestone → stone and cobbled deepslate → deepslate. Favors visible surfaces first — exposed cobble transmutes before buried cobble. One block every 4 seconds within a 9×9×9 area
 - **No size cap** — intentionally powerful. Your inventory is the only constraint
 
 ## Quick Start
