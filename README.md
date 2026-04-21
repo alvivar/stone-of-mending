@@ -15,13 +15,15 @@ A face-based building tool for selecting a 3D region, peeling it layer by layer,
 - **Visual rendering** — dim cyan box for the selection, bright slice for the frontier
 - **Sound feedback** — distinct audio cues for marking, collecting, placing, replacing, and errors
 - **Offhand auto-refill** from inventory
-- **Passive item repair** — while held, the stone slowly mends the most damaged item in your inventory (~7 min full repair)
+- **Passive repair** — while held, slowly mends the most damaged item in your inventory (~7 min full repair)
+- **Passive top-up** — while held, trickles arrows and torches into your inventory (one stack per hour, caps at 64 each)
+- **Stone-mending aura** _(experimental)_ — when nothing needs repair, the stone mends nearby cobblestone and cobbled deepslate back into whole stone. One block every 4 seconds within a 9×9×9 area
 - **No size cap** — intentionally powerful. Your inventory is the only constraint
 
 ## Quick Start
 
 1. Grab the **Stone of Mending** from the Tools & Utilities creative tab
-2. Hold it in your main hand — it passively repairs your most damaged item while held (~7 min full repair)
+2. Hold it in your main hand — passives activate: item repair, arrow/torch top-up, and stone-mending aura
 3. **Left-click** a block face to mark point A (this locks the slicing direction)
 4. **Right-click** another block to mark point B (completes the 3D box)
 5. Put blocks in your offhand
@@ -97,6 +99,7 @@ Swaps every eligible block in the entire box with the offhand material. Grants m
 - **Liquids skipped during replace** — water and lava source blocks are left untouched. Waterlogged blocks (stairs, slabs) _are_ replaced.
 - **Offhand auto-refill** — when your offhand empties during placement, smart fill, or replacement, matching stacks are pulled from your inventory automatically.
 - **Auto-clear on item switch** — selection clears when you switch away from the Stone of Mending.
+- **Hunger cost** — every block handled costs a sip of exhaustion (~64 blocks per hunger point). Free in creative.
 - **No size cap** — this tool is intentionally overpowered. Select as large a region as you want.
 
 ## Requirements
