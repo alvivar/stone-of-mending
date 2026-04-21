@@ -24,7 +24,10 @@ import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -347,10 +350,17 @@ public class StoneOfMendingMod implements ModInitializer {
 	}
 
 	// When everything is mended, the stone extends its attention outward and
-	// mends the closest broken stone — cobblestone and cobbled deepslate — into
-	// their whole forms. One block per 4s pulse. Experimental: blurs the
-	// inventory/world line the other passives respect, but the name demands it.
+	// mends broken stone — cobblestone and cobbled deepslate — into their whole
+	// forms. Selection favors visible blocks: only the current maximum-exposure
+	// tier is eligible, so surface cobble transmutes before buried cobble. As
+	// the exposed pool is consumed, less-exposed blocks rise to the new max tier
+	// — all cobble in range eventually gets mended, in natural order.
+	// Experimental: this is the only passive that mutates world blocks.
 	private static final int STONE_MEND_RADIUS = 4;
+	private static final int STONE_MEND_TOP_N = 9;
+
+	private record MendCandidate(BlockPos pos, Block target, int exposure, double distSq) {
+	}
 
 	private static void mendNearbyStone(ServerPlayer player) {
 		ServerLevel level = (ServerLevel) player.level();
@@ -358,12 +368,13 @@ public class StoneOfMendingMod implements ModInitializer {
 		double py = player.getY();
 		double pz = player.getZ();
 		BlockPos origin = player.blockPosition();
-
-		BlockPos bestPos = null;
-		Block bestResult = null;
-		double bestDistSq = Double.MAX_VALUE;
-
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+
+		// Single pass: retain only the current max-exposure tier. A new max evicts
+		// the prior tier; lower tiers are skipped entirely.
+		int maxExposure = -1;
+		List<MendCandidate> topTier = new ArrayList<>();
+
 		for (int dx = -STONE_MEND_RADIUS; dx <= STONE_MEND_RADIUS; dx++) {
 			for (int dy = -STONE_MEND_RADIUS; dy <= STONE_MEND_RADIUS; dy++) {
 				for (int dz = -STONE_MEND_RADIUS; dz <= STONE_MEND_RADIUS; dz++) {
@@ -371,28 +382,46 @@ public class StoneOfMendingMod implements ModInitializer {
 					if (!level.isLoaded(cursor))
 						continue;
 					BlockState state = level.getBlockState(cursor);
-					Block result;
+					Block target;
 					if (state.is(Blocks.COBBLESTONE))
-						result = Blocks.STONE;
+						target = Blocks.STONE;
 					else if (state.is(Blocks.COBBLED_DEEPSLATE))
-						result = Blocks.DEEPSLATE;
+						target = Blocks.DEEPSLATE;
 					else
 						continue;
 
-					double distSq = cursor.distToCenterSqr(px, py, pz);
-					if (distSq < bestDistSq) {
-						bestDistSq = distSq;
-						bestPos = cursor.immutable();
-						bestResult = result;
+					// Exposure = non-opaque neighbors. Unloaded neighbors don't count as
+					// exposed — prevents chunk-boundary bias toward edge blocks.
+					int exposure = 0;
+					for (Direction d : Direction.values()) {
+						BlockPos n = cursor.relative(d);
+						if (!level.isLoaded(n))
+							continue;
+						if (!level.getBlockState(n).isSolidRender())
+							exposure++;
 					}
+					if (exposure < maxExposure)
+						continue;
+
+					double distSq = cursor.distToCenterSqr(px, py, pz);
+					MendCandidate candidate = new MendCandidate(cursor.immutable(), target, exposure, distSq);
+					if (exposure > maxExposure) {
+						maxExposure = exposure;
+						topTier.clear();
+					}
+					topTier.add(candidate);
 				}
 			}
 		}
 
-		if (bestPos != null) {
-			level.setBlock(bestPos, bestResult.defaultBlockState(),
-					Block.UPDATE_NEIGHBORS | Block.UPDATE_CLIENTS);
-		}
+		if (topTier.isEmpty())
+			return;
+
+		topTier.sort(Comparator.comparingDouble(MendCandidate::distSq));
+		int limit = Math.min(STONE_MEND_TOP_N, topTier.size());
+		MendCandidate pick = topTier.get(level.getRandom().nextInt(limit));
+		level.setBlock(pick.pos(), pick.target().defaultBlockState(),
+				Block.UPDATE_NEIGHBORS | Block.UPDATE_CLIENTS);
 	}
 
 	private static String directionName(Direction dir) {

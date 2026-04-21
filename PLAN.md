@@ -322,8 +322,17 @@ While the Stone of Mending is held in main hand, it passively repairs the most d
 ### Phase 23: Passive stone-mending aura (experimental) ✓
 
 When the repair pulse has nothing to do (all items mended), the stone extends
-its attention outward and mends the closest broken stone — cobblestone and
-cobbled deepslate — into their whole forms. One block per 4-second pulse.
+its attention outward and mends broken stone — cobblestone and cobbled
+deepslate — into their whole forms. One block per 4-second pulse.
+
+**Selection (Phase 23.1 refinement)**: Favors visible blocks. Each candidate
+is scored by **exposure** = number of its 6 neighbors that are NOT full
+opaque cubes (range 0–6). Only the current maximum-exposure tier is eligible.
+Within that tier, the top 9 closest are taken and one is picked at random.
+As exposed cobble transmutes out, less-exposed blocks rise to the new max
+tier — all cobble in range eventually gets mended, in natural order
+(surface → wall → buried). Unloaded neighbors don't count as exposed
+(prevents chunk-boundary bias).
 
 **Why "experimental"**: this is the only passive that mutates the world around
 the player rather than their inventory. It blurs the trust line the other
